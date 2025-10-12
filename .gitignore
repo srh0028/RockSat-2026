@@ -1,3 +1,6 @@
+# Also
+*.mk
+
 # Prerequisites
 *.d
 
