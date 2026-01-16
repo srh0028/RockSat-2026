@@ -1,0 +1,10 @@
+^C:\USERS\BEN\DOCUMENTS\GITHUB\ROCKSAT-2026\BUILD\CMAKEFILES\E02B1CD52C79774ED1E16B343861DDA3\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Ben/Documents/GitHub/RockSat-2026 -BC:/Users/Ben/Documents/GitHub/RockSat-2026/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/Ben/Documents/GitHub/RockSat-2026/build/ROCKSAT-2026.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

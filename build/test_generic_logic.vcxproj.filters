@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\test_generic_logic.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\generic_driver.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\generic_controller.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\core\common\utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{52957126-70A5-3D3D-A473-ADD5E2DE9335}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

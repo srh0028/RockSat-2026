@@ -1,0 +1,10 @@
+^C:\USERS\BEN\DOCUMENTS\GITHUB\ROCKSAT-2026\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Ben/Documents/GitHub/RockSat-2026 -BC:/Users/Ben/Documents/GitHub/RockSat-2026/build --check-stamp-file C:/Users/Ben/Documents/GitHub/RockSat-2026/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
