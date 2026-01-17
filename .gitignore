@@ -1,6 +1,9 @@
 # Also
 *.mk
 *.bin
+Simulator Flight Profiles/
+Simulator Output/
+settings.json
 
 # Prerequisites
 *.d

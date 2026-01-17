@@ -1,8 +1,11 @@
-#include "main.h"
+
 #include <stdio.h>
+#include "simulator/simulator_ui.h"
 
 int main(void) {
 
-    printf( "Hello world!\n" );
-    return 0;
+    printf( "\nInitializing UI...\n" );
+    initialize_UI();
+    main_menu();
+    return 1;
 }

@@ -1,62 +1,49 @@
 # ============ COMPILER CONFIGURATION ============
-# The compiler we're using - clang
-CC = clang
-# Compiler flags:
-# -Wall     = Enable all common warnings
-# -Wextra   = Enable extra warnings  
-# -std=c99  = Use C99 standard
-# -g        = Include debug symbols
-# -O0       = No optimization (better for debugging)
-# -Iinclude = Look for header files in the 'include' directory
+# WSL -> Windows cross-compilation
+CC = x86_64-w64-mingw32-gcc
 CFLAGS = -Wall -Wextra -std=c99 -g -O0 -Iinclude
-# Directory containing header files
-INCLUDE_DIR = include
 
 # ============ DIRECTORY STRUCTURE ============
-# Directory containing our .c source files
 SRC_DIR = src
-# Directory where compiled files will go
 BIN_DIR = bin
-# Name of the final executable program
-TARGET = main
+TARGET = main.exe  # Windows executable
 
-# Find all .c files in src directory automatically
-# This becomes: src/main.c (and any other .c files we add)
+# Find all .c files in src directory
 SRCS = $(wildcard $(SRC_DIR)/*.c)
-# Convert source file paths to object file paths
-# src/main.c becomes bin/main.o
+# Object files go in bin directory
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BIN_DIR)/%.o)
 
 # ============ BUILD RULES ============
-# Default target - what runs when you type 'make'
-all: $(BIN_DIR)/$(TARGET)
+# Default target - builds Windows .exe
+all: $(TARGET)
 
-# Rule to link object files into final executable
-# Depends on all object files being built first
-# | $(BIN_DIR) means ensure bin directory exists first
-$(BIN_DIR)/$(TARGET): $(OBJS) | $(BIN_DIR)
+# Link object files into Windows executable
+$(TARGET): $(OBJS) | $(BIN_DIR)
 	$(CC) $(OBJS) -o $@
 
-# Rule to compile each .c file into a .o file
-# % is a pattern that matches any file name
-# $< is the source file (src/whatever.c)
-# $@ is the target file (bin/whatever.o)
+# Compile C files to object files
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Rule to create bin directory if it doesn't exist
+# Create bin directory
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # ============ UTILITY TARGETS ============
-# Remove all compiled files to clean up
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf $(BIN_DIR) $(TARGET)
 
-# Build and then run the program
-run: $(BIN_DIR)/$(TARGET)
-	./$(BIN_DIR)/$(TARGET)
+# Copy the .exe to Windows desktop (adjust path)
+copy:
+	cp $(TARGET) /mnt/c/Users/$(USER)/Desktop/
+
+# Build and copy
+release: all copy
+
+# Test with Wine (Windows compatibility layer)
+test: all
+	@echo "Testing with Wine..."
+	wine $(TARGET) 2>/dev/null || echo "Install Wine: sudo apt install wine"
 
 # ============ PHONY TARGETS ============
-# These are not actual files, just commands
-.PHONY: all clean run
+.PHONY: all clean copy release test
