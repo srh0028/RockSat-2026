@@ -2,6 +2,8 @@
 #ifndef RTE_H
 #define RTE_H
 
+#include "storage.h"
+#include <stdbool.h>
 typedef enum {
 
     TIMED_EVENT_1_EV,
@@ -38,28 +40,44 @@ SIMULATOR_STATUS_COUNT
 } simulator_status_e;
 
 /**
+ * @brief Represents a simulation.
+ */
+typedef struct simulation_t simulation_t;
+struct simulation_t {
+
+    csv_t* flight_profile_ptr;
+    simulator_status_e status_e;
+    timed_event_e current_timed_event;
+    int current_tick_int;
+    double current_altitude_dbl;
+};
+
+extern simulation_t simulation;
+
+/**
  * @brief Resets the simulator's state to prepare for the next simulation.
+ * @param flight_profile_ptr Which flight profile to set up to simulate.
+ * @retval -1: Simulation already in progress
+ * @retval -2: Invalid flight profile
+ * @retval 1: Ready to simulate
  */
 int reset_simulation( csv_t* flight_profile_ptr );
 
 /**
- * @brief Begins simulation.
+ * @brief Runs the simulation.
  */
-void begin_simulation(void);
+void simulate(void);
 
 /**
  * @brief Pushes a timed event to the controllers during simulation.
  */
-void push_timed_event( timed_event_e event );
-
-/**
- * @brief Execute one tick of simulation.
- */
-void simulation_tick(void);
+void push_timed_event( timed_event_e event_e );
 
 /**
  * @brief Cleans up after a simulation.
  */
 void conclude_simulation(void);
+
+void sim_snapshot(void);
 
 #endif

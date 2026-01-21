@@ -6,6 +6,7 @@
 #include <windows.h>
 #include "simulator/simulator_ui.h"
 #include "storage.h"
+#include "simulator/real_time_engine.h"
 
 //Simulation state variables
 char input_buffer[ MAX_PATH ] = { '\0' };
@@ -27,9 +28,9 @@ const char* main_menu_options[] = {
 const char* debug_menu_options[] = {
 
     "Main Menu",
-    "Stub Option",
-    "Stub Option",
-    "Stub Option",
+    "Validate default flight paths",
+    "Flip a coin",
+    "Sim Snapshot",
     "Stub Option",
     "Stub Option",
     "Stub Option",
@@ -111,7 +112,9 @@ int main_menu(void) {
                 break;
 
             case 3:
-                print_error( "main_menu()", "Unfinished Branch Exception", "The simulator doesn't do anything yet." );
+                puts( "Beginning simulation ..." );
+                if ( begin_simulation() ) puts( "Simulation over." );
+                trip_user();
                 break;
 
             case 4:
@@ -167,18 +170,45 @@ int debug_menu(void) {
                 break;
 
             case 2:
-                puts( "This option is a stub." );
+                puts( "\nValidating default flight paths ..." );
+                puts( "Loading linear profile ..." );
+                csv_t* linear_ptr = read_in_csv_flight_profile( LINEAR_FLIGHT_FILE_NAME );
+                puts( "Loading parabolic profile ..." );
+                csv_t* parabolic_ptr = read_in_csv_flight_profile( PARABOLIC_FLIGHT_FILE_NAME );
+                puts( "Validating linear profile ..." );
+                int status_code_1 = validate_flight_profile( linear_ptr );
+                printf( "Result: %d\n", status_code_1 );
+                puts( "Validating parabolic profile ..." );
+                status_code_1 = validate_flight_profile( parabolic_ptr );
+                printf( "Result: %d\n", status_code_1 );
+                free_csv_t( linear_ptr );
+                free_csv_t( parabolic_ptr );
                 trip_user();
                 break;
 
             case 3:
-                puts( "This option is a stub." );
+                puts( "Coinflip:" );
+                int status_code_2 = rand() % 2;
+                switch ( status_code_2 ) {
+
+                    case 0:
+                        puts( "HEADS" );
+                        break;
+
+                    case 1:
+                        puts( "TAILS" );
+                        break;
+
+                    default:
+                        puts( "ERROR" );
+                        break;
+                }
                 trip_user();
                 break;
 
             case 4:
-                puts( "This option is a stub." );
-                trip_user();
+                puts( "\nSim Snapshot:" );
+                sim_snapshot();
                 break;
 
             case 5:
@@ -325,8 +355,17 @@ void user_selects_flight_profile(void) {
         valid_input = 1;
     }
 
-    //Get me outta here.
+    //grab and validate the flight profile
     csv_t* result = read_in_csv_flight_profile( profile_names[ user_choice_int - 1 ] );
+    int validation_int = validate_flight_profile( result );
+    user_validation_feedback( validation_int );
+    if ( validation_int != 1 ) {
+
+        free_csv_t( result );
+        result = NULL; //ensures state cannot change to an illegal flight profile
+    }
+
+    //get me outta here
     for ( i = 0; i < profile_count_int; i++ ) free( profile_names[ i ] );
     user_flight_profile_ptr = result;
 }
@@ -370,4 +409,114 @@ void trip_user(void) {
 
     puts( "Press enter to continue ..." );
     get_input();
+}
+
+int validate_flight_profile( csv_t* flight_profile_ptr ) {
+
+    //trivial guard conditions
+    if ( !flight_profile_ptr->data_ptr ) return -1;
+    if ( !flight_profile_ptr->file_name_ptr ) return -2;
+    if ( flight_profile_ptr->rows_int < 1 ) return -3;
+    if ( flight_profile_ptr->columns_int != 3 ) return -4;
+
+    //set up to validate each row
+    double current_timed_event_dbl = -1.0;
+    double current_tick_dbl = -1.0;
+    double* current_row_ptr = NULL;
+    double third_row_dbl;
+    for ( int i = 0; i < flight_profile_ptr->rows_int; i ++ ) {
+    
+        //grab a row to validate
+        current_row_ptr = &( flight_profile_ptr->data_ptr[ ( i * FLIGHT_PROFILE_COLUMNS ) ] );
+
+        //validate first column
+        if ( ( current_row_ptr[ 0 ] - current_tick_dbl ) != 1.0 ) return -5; //next tick should be 1 more than current tick
+        else current_tick_dbl++;
+
+        //validate second column
+        if ( current_row_ptr[ 1 ] < 0 ) return -6; //altitude should never go below 0
+
+        //validate third column
+        third_row_dbl = current_row_ptr[ 2 ];
+        if ( third_row_dbl == NO_TIMED_EVENT_DOUBLE ) continue; //skip "no timed event" rows
+        if ( third_row_dbl > TIMED_EVENT_COUNT ) return -7; //max number of timed events
+        if ( third_row_dbl < 0 ) return -7; //timed event should never be negative 
+        if ( ( third_row_dbl - current_timed_event_dbl++ ) != 1.0 ) return -7; //timed event should be 1 more than previous timed event
+    }
+
+    //if we've survived then it must be valid
+    return 1;
+}
+
+static void user_validation_feedback( int input_int ) {
+
+    //guard condition
+    if ( input_int == 1 ) return;
+
+    //figure out and print the error message
+    char error_message[ 133 ] = { '\0' };
+    switch ( input_int ) {
+
+        case -1:
+            strcpy( error_message, "Failed to read in data from selected flight profile data." );
+            break;
+
+        case -2:
+            strcpy( error_message, "Failed to read in name of selected flight profile." );
+            break;
+
+        case -3:
+            strcpy( error_message, "Selected flight profile must have length >=1." );
+            break;
+
+        case -4:
+            strcpy( error_message, "Selected flight profile must have 3 columns." );
+            break;
+
+        case -5:
+            strcpy( error_message, "Problem in column 1 of selected flight profile.\nEach row must be timed 1 tick after the previous." );
+            break;
+
+        case -6:
+            strcpy( error_message, "Problem in column 2 of selected flight profile.\nAltitude must never be negative." );
+            break;
+
+        case -7:
+            strcpy( error_message, "Problem in column 3 of selected flight profile.\nTimed events must start from 1 and occur in order.\n20 timed events is the maximum." );
+            break;
+
+        default:
+            strcpy( error_message, "Unspecified error validating selected flight profile." );
+            break;
+    }
+    print_error( "DASHBOARD", "Flight Profile Exception", &( error_message[ 0 ] ) );
+}
+
+int begin_simulation() {
+
+    //guard condition
+    if ( user_flight_profile_ptr == NULL ) {
+
+        print_error( "begin_simulation()", "Illegal State", "No flight profile is selected." );
+        return -1;
+    }
+
+    //more guard conditions
+    int simulator_code = reset_simulation( user_flight_profile_ptr );
+    switch ( simulator_code ) {
+
+        case -1:
+            print_error( "begin_simulation()", "Illegal State", "No flight profile is selected." );
+            return -2;
+
+        case -2:
+            print_error( "begin_simulation()", "Illegal State", "No flight profile is selected." );
+            return -3;
+
+        default:
+    }
+    
+    //peepee poopoo
+    puts( "Reaching simulation ..." );
+    simulate();
 }

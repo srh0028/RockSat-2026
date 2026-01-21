@@ -2,6 +2,8 @@
 #ifndef SIM_UI_H
 #define SIM_UI_H
 
+#include "storage.h"
+
 #define INPUT_BUFFER_SIZE MAX_PATH
 #define EXIT_CODE 0x5C1B1D11
 #define NO_SELECTION 0x80081355
@@ -71,5 +73,33 @@ void clear_console(void);
  * @brief Stalls execution until the user presses enter, so they might read a message.
  */
 void trip_user(void);
+
+/**
+ * @brief Validates a flight profile.
+ * @param flight_profile_ptr Profile to validate
+ * @retval -1: NULL double* data_ptr
+ * @retval -2: NULL char* file_name_ptr
+ * @retval -3: <1 rows
+ * @retval -4: !3 columns
+ * @retval -5: Column 1 invalid
+ * @retval -6: Column 2 invalid
+ * @retval -7: Column 3 invalid
+ * @retval 1: Valid
+ */
+int validate_flight_profile( csv_t* flight_profile_ptr );
+
+/**
+ * @brief Feeds an error message about a flight profile back to the user if necessary.
+ */
+static void user_validation_feedback( int input_int );
+
+/**
+ * @brief Attempts to begin simulation.
+ * @retval -1: No flight profile selected
+ * @retval -2: Simulation already in progress ( ??? )
+ * @retval -3: Invalid flight profile selected
+ * @retval 1: Simulation begun 
+ */
+int begin_simulation(void);
 
 #endif

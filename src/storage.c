@@ -189,8 +189,8 @@ void replace_linear_flight_profile(void) {
         buffer = TEST_FLIGHTS_MAX_ALTITUDE_METERS * ( (double) i / (double) halfway );
         profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 0 ] = i;
         profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 1 ] = buffer;
-        if ( i % ( TEST_FLIGHTS_DURATION_SECONDS / TIMED_EVENT_COUNT ) == 0 ) profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = timed_events++;
-        else profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = NO_TIMED_EVENT_DOUBLE ;
+        if ( ( i % ( TEST_FLIGHTS_DURATION_SECONDS / TIMED_EVENT_COUNT ) == 0 ) && ( i != 0 ) ) profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = timed_events++;
+        else profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = NO_TIMED_EVENT_DOUBLE;
     }
     for ( i; i < TEST_FLIGHTS_DURATION_SECONDS; i ++ ) {
 
@@ -245,7 +245,7 @@ void replace_parabolic_flight_profile(void) {
                  ( ( TEST_FLIGHTS_DURATION_SECONDS - 1 ) * ( TEST_FLIGHTS_DURATION_SECONDS - 1 ) );
         profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 0 ] = i;
         profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 1 ] = buffer;
-        if ( i % ( TEST_FLIGHTS_DURATION_SECONDS / TIMED_EVENT_COUNT ) == 0 ) profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = timed_events++;
+        if ( ( i % ( TEST_FLIGHTS_DURATION_SECONDS / TIMED_EVENT_COUNT ) == 0 ) && ( i != 0 ) ) profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = timed_events++;
         else profile[ ( i * FLIGHT_PROFILE_COLUMNS ) + 2 ] = NO_TIMED_EVENT_DOUBLE;
     }
 
