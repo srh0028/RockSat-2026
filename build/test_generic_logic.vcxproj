@@ -372,10 +372,36 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\test_generic_logic.c" />
-    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\generic_driver.c" />
-    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\generic_controller.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\tests\test_generic_logic.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\flight_software\drivers\generic_driver.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\flight_software\controllers\generic_controller.c" />
     <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\core\common\utils.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\core\common\errors.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\core\common\storage.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\core\common\types.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\simulator_ui.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\real_time_engine.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\generic_mount.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_0.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_1.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_2.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_3.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_4.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_5.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_6.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_7.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_8.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_9.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_10.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_11.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_12.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_13.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_14.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_15.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_16.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_17.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_18.c" />
+    <ClCompile Include="C:\Users\Ben\Documents\GitHub\RockSat-2026\src\simulation\mounts\mount\instrument_19.c" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
