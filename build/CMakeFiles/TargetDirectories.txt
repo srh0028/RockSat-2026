@@ -1,3 +1,0 @@
-C:/Users/Ben/Documents/GitHub/RockSat-2026/build/CMakeFiles/test_generic_logic.dir
-C:/Users/Ben/Documents/GitHub/RockSat-2026/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/Ben/Documents/GitHub/RockSat-2026/build/CMakeFiles/ZERO_CHECK.dir
