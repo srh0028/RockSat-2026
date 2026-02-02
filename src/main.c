@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "simulator/simulator_ui.h"
+#include "simulation/simulator_ui.h"
 
 int main(void) {
 

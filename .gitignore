@@ -60,3 +60,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+build/
+Simulator Output/
+Simulator Flight Profiles/
+bin/
