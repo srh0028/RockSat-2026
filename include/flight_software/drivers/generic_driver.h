@@ -82,6 +82,11 @@ bool generic_driver_is_operational(const generic_driver_t *driver);
 
 error_code_t generic_driver_cleanup(generic_driver_t *driver);
 
+/**
+ * @brief generic sampling function
+ */
+error_code_t generic_sample(generic_driver_t *driver, void *sample_buffer);
+
 // Utility functions
 const char *generic_driver_get_name(const generic_driver_t *driver);
 uint32_t generic_driver_get_sample_count(const generic_driver_t *driver);

@@ -27,6 +27,8 @@ bool instrument_in_use[INSTRUMENT_COUNT] = {
     false,
     false,
     false,
+    false,
+    
     false};
 
 instrument_mount_t *instruments[INSTRUMENT_COUNT] = {
@@ -51,7 +53,9 @@ instrument_mount_t *instruments[INSTRUMENT_COUNT] = {
     &instrument_16,
     &instrument_17,
     &instrument_18,
-    &instrument_19};
+    &instrument_19,
+
+    &instrument_generic};
 
 double update_pin(instrument_e instrument, pin_e pin, double new_value_dbl)
 {
