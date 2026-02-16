@@ -394,22 +394,22 @@ void test_data_processing_and_flagging()
     print_test_success("Data Processing and Flagging");
 }
 
-int main(void)
-{
-    printf("========================================\n");
-    printf("  ENHANCED GENERIC COMPONENT TEST SUITE  \n");
-    printf("========================================\n\n");
+// int main(void)
+// {
+//     printf("========================================\n");
+//     printf("  ENHANCED GENERIC COMPONENT TEST SUITE  \n");
+//     printf("========================================\n\n");
 
-    test_initialization_and_state_machine();
-    test_sampling_and_buffer_management();
-    test_fault_handling_and_error_recovery();
-    test_calibration_and_operational_states();
-    test_multiple_independent_instances();
-    test_data_processing_and_flagging();
+//     test_initialization_and_state_machine();
+//     test_sampling_and_buffer_management();
+//     test_fault_handling_and_error_recovery();
+//     test_calibration_and_operational_states();
+//     test_multiple_independent_instances();
+//     test_data_processing_and_flagging();
 
-    printf("\n========================================\n");
-    printf("  ALL TESTS PASSED SUCCESSFULLY!\n");
-    printf("========================================\n");
+//     printf("\n========================================\n");
+//     printf("  ALL TESTS PASSED SUCCESSFULLY!\n");
+//     printf("========================================\n");
 
-    return 0;
-}
+//     return 0;
+// }

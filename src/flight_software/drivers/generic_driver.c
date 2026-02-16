@@ -1,15 +1,16 @@
 #include "flight_software/drivers/generic_driver.h"
 #include "core/common/utils.h"
+#include "simulation/mounts/generic_mount.h"
 #include <string.h>
 
 // State transition validation table
 static const bool state_transitions[DRIVER_STATE_COUNT][DRIVER_STATE_COUNT] = {
     // From\To      UNINIT   IDLE   SAMPLING   CALIB   ERROR
-    /* UNINIT */   {true,    true,  false,     false,  true},
-    /* IDLE */     {false,   true,  true,      true,   true},
-    /* SAMPLING */ {false,   true,  true,      false,  true},
-    /* CALIB */    {false,   true,  false,     true,   true},
-    /* ERROR */    {true,    false, false,     false,  true}};
+    /* UNINIT */ {true, true, false, false, true},
+    /* IDLE */ {false, true, true, true, true},
+    /* SAMPLING */ {false, true, true, false, true},
+    /* CALIB */ {false, true, false, true, true},
+    /* ERROR */ {true, false, false, false, true}};
 
 // Validate state indices at compile time
 _Static_assert(sizeof(state_transitions) / sizeof(state_transitions[0]) == DRIVER_STATE_COUNT,
@@ -275,4 +276,32 @@ uint32_t generic_driver_get_sample_count(const generic_driver_t *driver)
         return 0;
     }
     return driver->sample_count;
+}
+
+// Addition to link with simulator
+error_code_t generic_sample(generic_driver_t *driver, void *sample_buffer)
+{
+    if (!driver || !sample_buffer)
+        return ERROR_NULL_POINTER;
+
+    if (!driver->hardware_context)
+        return ERROR_HARDWARE_FAILURE;
+
+    instrument_mount_t *mount =
+        (instrument_mount_t *)driver->hardware_context;
+
+    // Modify the mount directly:
+    mount->pins[PIN_GENERIC_E] = 68;
+
+    // Could also use update_pin()
+    // update_pin(
+    //     INSTRUMENT_GENERIC_E, // If needed, but better avoided (see below)
+    //     PIN_GENERIC_E,
+    //     68);
+
+    double reading = mount->instrument_reading();
+
+    *(double *)sample_buffer = reading;
+
+    return ERROR_NONE;
 }

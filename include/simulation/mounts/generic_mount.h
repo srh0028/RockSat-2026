@@ -34,6 +34,8 @@ typedef enum
     INSTRUMENT_18_E,
     INSTRUMENT_19_E,
 
+    INSTRUMENT_GENERIC_E,
+
     INSTRUMENT_COUNT
 } instrument_e;
 
@@ -61,6 +63,8 @@ typedef enum
     PIN_17_E,
     PIN_18_E,
     PIN_19_E,
+
+    PIN_GENERIC_E,
 
     PIN_COUNT
 } pin_e;
@@ -102,6 +106,8 @@ extern instrument_mount_t instrument_17;
 extern instrument_mount_t instrument_18;
 extern instrument_mount_t instrument_19;
 
+extern instrument_mount_t instrument_generic;
+
 double instrument_reading_0(void);
 double instrument_reading_1(void);
 double instrument_reading_2(void);
@@ -124,6 +130,8 @@ double instrument_reading_17(void);
 double instrument_reading_18(void);
 double instrument_reading_19(void);
 
+double instrument_reading_generic(void);
+
 void reset_instrument_0(void);
 void reset_instrument_1(void);
 void reset_instrument_2(void);
@@ -145,6 +153,8 @@ void reset_instrument_16(void);
 void reset_instrument_17(void);
 void reset_instrument_18(void);
 void reset_instrument_19(void);
+
+void reset_instrument_generic(void);
 
 /**
  * @brief Updates an instrument mount's pin.
