@@ -1,128 +1,81 @@
+
 #ifndef GENERIC_CONTROLLER_H
 #define GENERIC_CONTROLLER_H
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "core/common/errors.h"
+#include "flight_software/drivers/generic_driver.h"
+#include "flight_software/flight_software_types.h"
+#include "simulation/real_time_engine.h"
 
-// Forward declarations only
-typedef struct generic_driver generic_driver_t;
-typedef struct generic_controller generic_controller_t;
+#define DRIVERS_UTILIZED_GENERIC 1
 
-// Forward declare storage_handle_t if not defined elsewhere
-typedef void *storage_handle_t; // Placeholder - replace with actual type
+/**
+ * @brief Entry point for the controller. Use this to link up the controller struct
+ */
+void generic_controller_setup(void);
 
-typedef enum
-{
-    CONTROLLER_STATE_UNINITIALIZED = 0,
-    CONTROLLER_STATE_IDLE,
-    CONTROLLER_STATE_ARMED,
-    CONTROLLER_STATE_SAMPLING,
-    CONTROLLER_STATE_PROCESSING,
-    CONTROLLER_STATE_STORING,
-    CONTROLLER_STATE_ERROR,
-    CONTROLLER_STATE_EMERGENCY,
-    CONTROLLER_STATE_COUNT // Keep last for array sizing
-} controller_state_t;
+/**
+ * @brief Main looping function for the microcontroller
+ * @note Wee haw!
+ * @todo ADD A GIANT ERROR MESSAGE IN HERE
+ */
+void generic_controller_loop(void);
 
-typedef enum
-{
-    EVENT_NONE = 0,
-    EVENT_ARM,
-    EVENT_DEPLOY,
-    EVENT_START_SAMPLING,
-    EVENT_STOP_SAMPLING,
-    EVENT_PROCESS_DATA,
-    EVENT_STORE_DATA,
-    EVENT_EMERGENCY_STOP,
-    EVENT_RESET
-} controller_event_t;
+/**
+ * @brief Initialize a controller with the given number of instruments.
+ * @returns controller state after initialization
+ */
+controller_state_e initialize(void);
 
-// Function pointer types for controller operations
-typedef error_code_t (*controller_init_func_t)(generic_controller_t *controller, void *config);
-typedef error_code_t (*controller_process_func_t)(generic_controller_t *controller,
-                                                  const void *raw_sample,
-                                                  void *processed_data);
-typedef error_code_t (*controller_flag_func_t)(generic_controller_t *controller,
-                                               void *data,
-                                               uint32_t *flags);
-typedef error_code_t (*controller_handle_event_func_t)(generic_controller_t *controller,
-                                                       controller_event_t event);
-typedef error_code_t (*controller_cleanup_func_t)(generic_controller_t *controller);
+/**
+ * @brief Initializes storage for the given environment.
+ * @retval -1: failure
+ * @retval 1: success
+ */
+int initialize_storage(void);
 
-typedef struct
-{
-    controller_init_func_t init;
-    controller_process_func_t process;
-    controller_flag_func_t flag;
-    controller_handle_event_func_t handle_event;
-    controller_cleanup_func_t cleanup;
-    size_t sample_size;    // Size of raw sample
-    size_t processed_size; // Size of processed data
-} controller_operations_t;
+/**
+ * @brief Reads in a timed event from the simulation.
+ * @retval 1 if a timed event is active
+ * @retval 0 if a timed event is not active
+ */
+int read_in_sim_timed_event(void);
 
-struct generic_controller
-{
-    uint8_t controller_id;
-    char controller_name[32];
-    controller_state_t state;
-    const controller_operations_t *ops; // Instance-specific operations
+/**
+ * @brief Reads in a timed event in flight.
+ * @retval 0 TE pin = logic low
+ * @retval 1 TE pin = logic high
+ */
+int read_in_flight_timed_event(void);
 
-    // Owned resources
-    generic_driver_t *driver; // Controller owns the driver
-    storage_handle_t storage;
+void deploy(void);
 
-    // Configuration
-    void *config;
+void retract(void);
 
-    // Data buffers (pre-allocated, no malloc in flight)
-    void *sample_buffer;    // For raw samples from driver
-    void *process_buffer;   // For processed data
-    size_t buffer_capacity; // Max samples per buffer
-    uint32_t sample_count;  // Current samples in buffer
+/**
+ * @brief Performs one cycle of sampling.
+ */
+void sample_cycle(void);
 
-    // Statistics
-    uint64_t total_samples;
-    uint64_t last_sample_time;
-    uint32_t error_count;
+void timed_event_1_handler(void);
+void timed_event_2_handler(void);
+void timed_event_3_handler(void);
+void timed_event_4_handler(void);
+void timed_event_5_handler(void);
+void timed_event_6_handler(void);
+void timed_event_7_handler(void);
+void timed_event_8_handler(void);
+void timed_event_9_handler(void);
+void timed_event_10_handler(void);
 
-    // Ownership flags
-    bool owns_driver;    // True if controller owns/created the driver
-    bool is_operational; // Emergency status flag
-};
+void timed_event_11_handler(void);
+void timed_event_12_handler(void);
+void timed_event_13_handler(void);
+void timed_event_14_handler(void);
+void timed_event_15_handler(void);
+void timed_event_16_handler(void);
+void timed_event_17_handler(void);
+void timed_event_18_handler(void);
+void timed_event_19_handler(void);
+void timed_event_20_handler(void);
 
-// Core controller API
-error_code_t generic_controller_init(generic_controller_t *controller,
-                                     const char *name,
-                                     uint8_t id,
-                                     generic_driver_t *driver,
-                                     bool owns_driver,
-                                     const controller_operations_t *ops,
-                                     storage_handle_t storage,
-                                     void *config,
-                                     void *sample_buffer,
-                                     void *process_buffer,
-                                     size_t buffer_capacity);
-
-error_code_t generic_controller_handle_event(generic_controller_t *controller,
-                                             controller_event_t event);
-
-error_code_t generic_controller_execute_sampling_cycle(generic_controller_t *controller);
-
-error_code_t generic_controller_set_state(generic_controller_t *controller,
-                                          controller_state_t new_state);
-
-error_code_t generic_controller_validate_state_transition(controller_state_t current_state,
-                                                          controller_state_t new_state);
-
-error_code_t generic_controller_cleanup(generic_controller_t *controller);
-
-// Query functions
-controller_state_t generic_controller_get_state(const generic_controller_t *controller);
-const char *generic_controller_get_name(const generic_controller_t *controller);
-uint32_t generic_controller_get_sample_count(const generic_controller_t *controller);
-uint64_t generic_controller_get_total_samples(const generic_controller_t *controller);
-uint32_t generic_controller_get_error_count(const generic_controller_t *controller);
-bool generic_controller_is_operational(const generic_controller_t *controller);
-
-#endif // GENERIC_CONTROLLER_H
+#endif

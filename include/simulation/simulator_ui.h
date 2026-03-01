@@ -2,20 +2,20 @@
 #ifndef SIM_UI_H
 #define SIM_UI_H
 
-#include "core/common/storage.h"
+#include "storage.h"
+#include "simulation/sim_sd.h"
 
 #define INPUT_BUFFER_SIZE MAX_PATH
 #define EXIT_CODE 0x5C1B1D11
 #define NO_SELECTION 0x80081355
 #define MAX_FLIGHT_PROFILES_IN_FOLDER 16
 
-typedef enum
-{
+typedef enum {
 
     MAIN_MENU_EV,
     DEBUG_MENU_EV,
 
-    MENU_COUNT
+MENU_COUNT
 } menu_e;
 
 /**

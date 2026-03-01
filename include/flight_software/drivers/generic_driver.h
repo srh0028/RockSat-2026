@@ -1,94 +1,108 @@
+
 #ifndef GENERIC_DRIVER_H
 #define GENERIC_DRIVER_H
 
-#include <stdint.h>
+#include "flight_software/flight_software_types.h"
 #include <stdbool.h>
-#include "core/common/errors.h"
+#include <stddef.h>
 
-/**
- * @brief Generic driver template for instrument drivers
- *
- * This serves as a template for creating specific instrument drivers.
- * Modify for Langmuir, EFI, etc.
- */
+#define GENERIC_FLAGS_IN_USE 2
+#define GENERIC_DOUBLES_PER_SAMPLE 1
+#define GENERIC_SAMPLES_PER_WRITE 16
+#define GENERIC_OUTPUT_FILE_NAME "Generic Instrument Data"
+#define GENERIC_CSV_COLUMNS_COUNT ( GENERIC_DOUBLES_PER_SAMPLE + 2 )
+#define GENERIC_DATA_BUFFER_SIZE ( GENERIC_CSV_COLUMNS_COUNT * GENERIC_SAMPLES_PER_WRITE )
 
-// Forward declaration only
-typedef struct generic_driver generic_driver_t;
+typedef enum motor_e motor_e;
+enum motor_e {
 
-typedef enum
-{
-    DRIVER_STATE_UNINITIALIZED = 0,
-    DRIVER_STATE_IDLE,
-    DRIVER_STATE_SAMPLING,
-    DRIVER_STATE_CALIBRATING,
-    DRIVER_STATE_ERROR,
-    DRIVER_STATE_COUNT // Keep last for array sizing
-} driver_state_t;
+    MOTOR_1_E,
+    MOTOR_2_E,
+    MOTOR_3_E,
+    MOTOR_4_E,
+    MOTOR_5_E,
+    MOTOR_6_E,
+    MOTOR_7_E,
+    MOTOR_8_E,
 
-// Function pointer types for driver operations
-typedef error_code_t (*driver_init_func_t)(generic_driver_t *driver, void *config);
-typedef error_code_t (*driver_sample_func_t)(generic_driver_t *driver, void *sample_buffer);
-typedef error_code_t (*driver_calibrate_func_t)(generic_driver_t *driver);
-typedef error_code_t (*driver_emergency_func_t)(generic_driver_t *driver);
-typedef error_code_t (*driver_cleanup_func_t)(generic_driver_t *driver);
-
-typedef struct
-{
-    driver_init_func_t init;
-    driver_sample_func_t sample;
-    driver_calibrate_func_t calibrate;
-    driver_emergency_func_t emergency;
-    driver_cleanup_func_t cleanup;
-    size_t sample_size; // Size of one sample in bytes
-} driver_operations_t;
-
-struct generic_driver
-{
-    uint8_t driver_id;
-    char driver_name[32];
-    driver_state_t state;
-    const driver_operations_t *ops; // Instance-specific operations
-    void *hardware_context;         // Hardware-specific context
-    void *config;                   // Driver-specific configuration
-    uint32_t sample_count;          // Total samples taken
-    uint64_t last_sample_time;      // Timestamp of last sample
-    bool is_operational;            // Emergency status flag
+GENERIC_DRIVER_MOTOR_COUNT
 };
 
-// Core driver API
-error_code_t generic_driver_init(generic_driver_t *driver,
-                                 const char *name,
-                                 uint8_t id,
-                                 const driver_operations_t *ops,
-                                 void *config,
-                                 void *hardware_context);
-
-error_code_t generic_driver_take_sample(generic_driver_t *driver,
-                                        void *sample_buffer);
-
-error_code_t generic_driver_calibrate(generic_driver_t *driver);
-
-error_code_t generic_driver_emergency_stop(generic_driver_t *driver);
-
-error_code_t generic_driver_set_state(generic_driver_t *driver,
-                                      driver_state_t new_state);
-
-error_code_t generic_driver_validate_state_transition(driver_state_t current_state,
-                                                      driver_state_t new_state);
-
-driver_state_t generic_driver_get_state(const generic_driver_t *driver);
-
-bool generic_driver_is_operational(const generic_driver_t *driver);
-
-error_code_t generic_driver_cleanup(generic_driver_t *driver);
+/**
+ * @brief Initializes the instrument driver. Injects a reference to the sample buffer into the driver.
+ * @note Leaves the initialized instrument in the DEPLOYMENT_E state.
+ * @param instrument instrument_t* allocated by calling code
+ * @param target_deployment_inches int
+ * @param sample_buffer sample_t* allocated by calling code
+ * @param storage_buffer csv_t* allocated by calling code
+ * @retval -1: This driver was already initialized
+ * @retval -2: Instrument is asked to deploy further than 10 feet, which is ridiculous
+ * @retval -3: Sample buffer NPE
+ * @retval -4: Storage buffer NPE
+ * @retval 1: success
+ */
+int initialize_driver( instrument_t* instrument,
+                    int target_deployment_inches, 
+                    sample_t* sample_buffer,
+                    csv_t* storage_buffer );
 
 /**
- * @brief generic sampling function
+ * @brief Deploys the instrumentation this driver is responsible for.
+ * @note Leaves the instrument in the READY_E state.
+ * @retval -1: Illegal driver state
+ * @retval -2: Driver already deployed
+ * @retval 0: Still deploying at least one motor
+ * @retval 1: All motors successfully deployed
  */
-error_code_t generic_sample(generic_driver_t *driver, void *sample_buffer);
+int generic_deploy_instrumentation(void);
 
-// Utility functions
-const char *generic_driver_get_name(const generic_driver_t *driver);
-uint32_t generic_driver_get_sample_count(const generic_driver_t *driver);
+/**
+ * @brief Retracts the driven instrumentation
+ * @note leaves the driver in DEPLOYMENT_E state
+ * @retval -1: illegal state
+ * @retval -2: instrumentation was not deployed to begin with
+ * @retval 0: still retracting at least one motor
+ * @retval 1: all motors retracted
+ */
+int generic_retract_instrumentation(void);
 
-#endif // GENERIC_DRIVER_H
+/**
+ * @brief Returns a double indicating how extended the argued motor has become.
+ * @param which_motor motor_e
+ * @retval -1: error in deployment
+ * @returns positive double indicating boom extension
+ */
+double measure_extension( motor_e which_motor );
+
+/**
+ * @brief Samples the instruentation into the sample buffer.
+ * @retval NULL: failure (Driver in wrong state, malloc() NPE,)
+ * @retval sample_t*: success
+ */
+void generic_sample(void);
+
+/**
+ * @brief Processes the data in the sample buffer. Returns an 8-flag byte to characterize the sample.
+ * 
+ * 1. FLAG ONE
+ * 2. FLAG TWO
+ * 3. FLAG THREE
+ * 4. FLAG FOUR
+ * 5. FLAG FIVE
+ * 6. FLAG SIX
+ * 7. FLAG SEVEN
+ * 8. FLAG EIGHT
+ */
+unsigned char process_sample( sample_t* sample );
+
+bool data_flag_generic_1( sample_t* sample );
+bool data_flag_generic_2( sample_t* sample );
+bool data_flag_generic_3( sample_t* sample );
+bool data_flag_generic_4( sample_t* sample );
+
+bool data_flag_generic_5( sample_t* sample );
+bool data_flag_generic_6( sample_t* sample );
+bool data_flag_generic_7( sample_t* sample );
+bool data_flag_generic_8( sample_t* sample );
+
+#endif

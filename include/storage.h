@@ -8,8 +8,8 @@
 
 #define FLIGHT_PROFILE_COLUMNS 3
 
-#define TEST_FLIGHTS_DURATION_SECONDS 600 //10 minutes
-#define TEST_FLIGHTS_MAX_ALTITUDE_METERS 110000 //10% higher than the edge of space
+#define TEST_FLIGHTS_DURATION_SECONDS 12000 //200 minutes
+#define TEST_FLIGHTS_MAX_ALTITUDE_METERS 200000 //100% higher than the edge of space
 #define LINEAR_FLIGHT_FILE_NAME "Default Linear"
 #define PARABOLIC_FLIGHT_FILE_NAME "Default Parabolic"
 #define NO_TIMED_EVENT_DOUBLE -1.0
@@ -25,6 +25,8 @@ struct csv_t {
     int rows_int;
     int columns_int;
     double* data_ptr;
+    int max_rows;
+    int cursor;
 };
 
 /**
@@ -87,5 +89,10 @@ void replace_parabolic_flight_profile(void);
  * @param folder_ptr Name of folder to open
  */
 void open_explorer_to_location( char* folder_ptr );
+
+/**
+ * @brief Saves a controller's storage buffer to simulated SD card
+ */
+void save_buffer_to_sim_sd( csv_t *csv );
 
 #endif

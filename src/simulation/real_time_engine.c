@@ -1,7 +1,8 @@
 
 #include "simulation/real_time_engine.h"
 #include "simulation/simulator_ui.h"
-#include "simulation/mounts/generic_mount.h"
+#include "simulation/generic_mount.h"
+#include "simulation/simulation_config.h"
 #include "storage.h"
 #include <stddef.h>
 #include <string.h>
@@ -12,8 +13,10 @@ simulation_t simulation = {
     NULL,
     FINISHED_EV,
     TIMED_EVENT_COUNT,
+    0,
     -1,
-    -1
+    -1,
+    { &generic_controller }
 };
 
 int reset_simulation( csv_t* flight_profile_ptr ) {
@@ -34,13 +37,15 @@ int reset_simulation( csv_t* flight_profile_ptr ) {
     //reset the instrument mounts
     reset_all_instruments();
 
-    //set up the simulation struct and return
+    //set up the simulation struct
     simulation.flight_profile_ptr = flight_profile_ptr;
     simulation.status_e = WAITING_EV;
     simulation.current_timed_event = TIMED_EVENT_COUNT;
     simulation.current_tick_int = 0;
     simulation.current_altitude_dbl = 0.0;
-    puts( "/reset_simulation()" );
+
+    //set up all the controllers, as happens in real life, and return
+    generic_controller_setup();
     return 1;
 }
 
@@ -65,33 +70,38 @@ void simulate(void) {
     double timed_event_dbl = NO_TIMED_EVENT_DOUBLE;
     for ( int i = 0; i < simulation.flight_profile_ptr->rows_int; i ++ ) {
 
-        //grab the tick data
-        current_tick_ptr = &( simulation.flight_profile_ptr->data_ptr[ ( i * FLIGHT_PROFILE_COLUMNS ) ] );
-
         //update the simulation's variables
+        current_tick_ptr = &( simulation.flight_profile_ptr->data_ptr[ ( i * FLIGHT_PROFILE_COLUMNS ) ] );
         simulation.current_tick_int = current_tick_ptr[ 0 ];
         simulation.current_altitude_dbl = current_tick_ptr[ 1 ];
+        if ( simulation.timed_event_pin > 0 ) simulation.timed_event_pin--; //ensures there is eventually a falling edge on the TE pin
 
         //if there is a timed event
         timed_event_dbl = current_tick_ptr[ 2 ];
         if ( timed_event_dbl != NO_TIMED_EVENT_DOUBLE ) {
             
             //update sim state, push timed event to controllers
-            int which_event = ( int ) timed_event_dbl;
-            simulation.current_timed_event = ( timed_event_e ) which_event;
-            push_timed_event( ( timed_event_e ) which_event );
+            int which_event = (int) timed_event_dbl;
+            simulation.current_timed_event = (timed_event_e) which_event;
+            push_timed_event();
 
             //feed back to the user
             sim_snapshot();
             print_active_instruments();
             trip_user();
         }
+
+        //loop all controllers
+        for ( int i = 0; i < ACTIVE_CONTROLLERS_COUNT; i ++ ) simulation.controllers[ i ]->loop();
     }
+
+    //reset the state
+    simulation.status_e = FINISHED_EV;
 }
 
-void push_timed_event( timed_event_e event_e ) {
+void push_timed_event(void) {
 
-    return;
+    simulation.timed_event_pin = 10;
 }
 
 char* status_strings[ SIMULATOR_STATUS_COUNT ] = {

@@ -2,34 +2,29 @@
 #ifndef RTE_H
 #define RTE_H
 
-#include "core/common/storage.h"
+#include "storage.h"
+#include "flight_software/flight_software_types.h"
+#include "simulation/simulation_config.h"
 #include <stdbool.h>
-typedef enum
-{
 
-    TIMED_EVENT_1_EV,
-    TIMED_EVENT_2_EV,
-    TIMED_EVENT_3_EV,
-    TIMED_EVENT_4_EV,
-    TIMED_EVENT_5_EV,
-    TIMED_EVENT_6_EV,
-    TIMED_EVENT_7_EV,
-    TIMED_EVENT_8_EV,
-    TIMED_EVENT_9_EV,
-    TIMED_EVENT_10_EV,
-    TIMED_EVENT_11_EV,
-    TIMED_EVENT_12_EV,
-    TIMED_EVENT_13_EV,
-    TIMED_EVENT_14_EV,
-    TIMED_EVENT_15_EV,
-    TIMED_EVENT_16_EV,
-    TIMED_EVENT_17_EV,
-    TIMED_EVENT_18_EV,
-    TIMED_EVENT_19_EV,
-    TIMED_EVENT_20_EV,
+typedef struct simulation_t simulation_t;
 
-    TIMED_EVENT_COUNT
-} timed_event_e;
+extern simulation_t simulation;
+extern controller_t generic_controller;
+
+typedef enum controllers_e {
+
+    CONTROLLER_1_E,
+    CONTROLLER_2_E,
+    CONTROLLER_3_E,
+    CONTROLLER_4_E,
+    CONTROLLER_5_E,
+    CONTROLLER_6_E,
+    CONTROLLER_7_E,
+    CONTROLLER_8_E,
+
+CONTROLLER_COUNT
+} controllers_e;
 
 typedef enum
 {
@@ -44,18 +39,16 @@ typedef enum
 /**
  * @brief Represents a simulation.
  */
-typedef struct simulation_t simulation_t;
-struct simulation_t
-{
+struct simulation_t {
 
     csv_t *flight_profile_ptr;
     simulator_status_e status_e;
     timed_event_e current_timed_event;
+    int timed_event_pin;
     int current_tick_int;
     double current_altitude_dbl;
+    controller_t* controllers[ ACTIVE_CONTROLLERS_COUNT ];
 };
-
-extern simulation_t simulation;
 
 /**
  * @brief Resets the simulator's state to prepare for the next simulation.
@@ -74,7 +67,7 @@ void simulate(void);
 /**
  * @brief Pushes a timed event to the controllers during simulation.
  */
-void push_timed_event(timed_event_e event_e);
+void push_timed_event(void);
 
 /**
  * @brief Cleans up after a simulation.

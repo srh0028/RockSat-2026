@@ -7,6 +7,7 @@
 #include "simulation/simulator_ui.h"
 #include "storage.h"
 #include "simulation/real_time_engine.h"
+#include "simulation/sim_sd.h"
 
 //Simulation state variables
 char input_buffer[ MAX_PATH ] = { '\0' };
@@ -407,7 +408,7 @@ void clear_console(void) {
 
 void trip_user(void) {
 
-    puts( "Press enter to continue ..." );
+    puts( "Press enter to continue ...\n" );
     get_input();
 }
 
@@ -517,6 +518,5 @@ int begin_simulation() {
     }
     
     //peepee poopoo
-    puts( "Reaching simulation ..." );
     simulate();
 }

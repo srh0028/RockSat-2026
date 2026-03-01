@@ -1,307 +1,252 @@
+
 #include "flight_software/drivers/generic_driver.h"
-#include "core/common/utils.h"
-#include "simulation/mounts/generic_mount.h"
-#include <string.h>
+#include "flight_software/flight_software_types.h"
+#include "simulation/generic_mount.h"
+#include <memory.h>
 
-// State transition validation table
-static const bool state_transitions[DRIVER_STATE_COUNT][DRIVER_STATE_COUNT] = {
-    // From\To      UNINIT   IDLE   SAMPLING   CALIB   ERROR
-    /* UNINIT */ {true, true, false, false, true},
-    /* IDLE */ {false, true, true, true, true},
-    /* SAMPLING */ {false, true, true, false, true},
-    /* CALIB */ {false, true, false, true, true},
-    /* ERROR */ {true, false, false, false, true}};
+#define GENERIC_SAMPLE_SIZE 1
+#define BITS_PER_BYTE 8
 
-// Validate state indices at compile time
-_Static_assert(sizeof(state_transitions) / sizeof(state_transitions[0]) == DRIVER_STATE_COUNT,
-               "State transition table row count mismatch");
-_Static_assert(sizeof(state_transitions[0]) / sizeof(state_transitions[0][0]) == DRIVER_STATE_COUNT,
-               "State transition table column count mismatch");
+#define OUTPUT_PIN_1 PIN_0_E
 
-error_code_t generic_driver_init(generic_driver_t *driver,
-                                 const char *name,
-                                 uint8_t id,
-                                 const driver_operations_t *ops,
-                                 void *config,
-                                 void *hardware_context)
-{
-    if (!driver || !name || !ops)
-    {
-        return ERROR_NULL_POINTER;
+instrument_t* driven_instrument = NULL;
+data_flag_condition flag_conditions[ BITS_PER_BYTE ] = {
+
+    data_flag_generic_1,
+    data_flag_generic_2,
+    data_flag_generic_3,
+    data_flag_generic_4,
+    data_flag_generic_5,
+    data_flag_generic_6,
+    data_flag_generic_7,
+    data_flag_generic_8
+};
+pin_e motor_pins[ GENERIC_DRIVER_MOTOR_COUNT ] = {
+
+    PIN_19_E,
+    PIN_18_E,
+    PIN_17_E,
+    PIN_16_E,
+    PIN_15_E,
+    PIN_14_E,
+    PIN_13_E,
+    PIN_12_E,
+};
+
+int initialize_driver( instrument_t* instrument,
+                    int target_deployment_inches, 
+                    sample_t* sample_buffer,
+                    csv_t* storage_buffer ) {
+
+    //guard conditions
+    if ( instrument->driver_state != D_UNINITIALIZED_E ) {
+
+        instrument->driver_state = D_ERROR_E;
+        return -1;
+    }
+    if ( target_deployment_inches > MAX_IMAGINABLE_BOOM_EXTENSION_INCHES ) {
+
+        instrument->driver_state = D_ERROR_E;
+        return -2;
+    }
+    if ( !sample_buffer ) {
+
+        instrument->driver_state = D_ERROR_E;
+        return -3;
+    }
+    if ( !storage_buffer ) {
+
+        instrument->driver_state = D_ERROR_E;
+        return -4;
     }
 
-    if (ops->sample_size == 0)
-    {
-        return ERROR_INVALID_ARGUMENT;
+    //initialize and return
+    instrument->target_deployment_units = target_deployment_inches;
+    instrument->target_deployment_units *= ENCODER_UNITS_PER_INCH; //unit conversion
+    sample_buffer->sample_double_count = GENERIC_DOUBLES_PER_SAMPLE;
+    instrument->sample_buffer = sample_buffer;
+    driven_instrument = instrument;
+    driven_instrument->driver_state = D_DEPLOYMENT_E;
+    return 1;
+}
+
+int generic_deploy_instrumentation(void) {
+
+    //guard conditions
+    if ( driven_instrument->driver_state != D_DEPLOYMENT_E ) {
+
+        driven_instrument->driver_state = D_ERROR_E;
+        return -1;
+    }
+    if ( driven_instrument->deployed ) {
+
+        driven_instrument->driver_state = D_ERROR_E;
+        return -2;
     }
 
-    // Initialize basic driver info
-    driver->driver_id = id;
-    strncpy(driver->driver_name, name, sizeof(driver->driver_name) - 1);
-    driver->driver_name[sizeof(driver->driver_name) - 1] = '\0';
+    //check each motor
+    double deployment_buffer = -1.0;
+    bool any_motors_still_deploying = false;
+    for ( int i = 0; i < GENERIC_DRIVER_MOTOR_COUNT; i ++ ) {
 
-    driver->ops = ops;
-    driver->config = config;
-    driver->hardware_context = hardware_context;
-    driver->sample_count = 0;
-    driver->last_sample_time = 0;
-    driver->is_operational = true;
+        //break if that motor is deployed successfully
+        deployment_buffer = measure_extension( (motor_e) i );
+        if ( deployment_buffer >= driven_instrument->target_deployment_units ) continue;
 
-    // Set initial state
-    driver->state = DRIVER_STATE_UNINITIALIZED;
+        //otherwise, continue to deploy it
+        increment_pin( INSTRUMENT_GENERIC_E, motor_pins[ i ] );
+        any_motors_still_deploying = true;
+    }
 
-    // Call driver-specific initialization
-    if (driver->ops->init)
-    {
-        error_code_t result = driver->ops->init(driver, config);
-        if (result != ERROR_NONE)
-        {
-            driver->state = DRIVER_STATE_ERROR;
-            driver->is_operational = false;
-            return result;
+    //check if we are finished and return
+    if ( !any_motors_still_deploying ) {
+
+        driven_instrument->deployed = true;
+        driven_instrument->driver_state = D_READY_E;
+        return 1;
+    }
+    return 0;
+}
+
+int generic_retract_instrumentation(void) {
+
+    //guard conditions
+    if ( driven_instrument->driver_state != D_READY_E ) {
+
+        driven_instrument->driver_state = D_ERROR_E;
+        return -1;
+    }
+    if ( driven_instrument->deployed == false ) {
+
+        driven_instrument->driver_state = D_ERROR_E;
+        return -2;
+    }
+
+    //check each motor
+    double deployment_buffer = 1.0;
+    bool any_motors_still_retracting = false;
+    for ( int i = 0; i < GENERIC_DRIVER_MOTOR_COUNT; i ++ ) {
+
+        //break if that motor is retracted successfully
+        deployment_buffer = measure_extension( (motor_e) i );
+        if ( deployment_buffer < 1.0 ) continue;
+
+        //otherwise, continue to retract it
+        decrement_pin( INSTRUMENT_GENERIC_E, motor_pins[ i ] );
+        any_motors_still_retracting = true;
+    }
+
+    //check if we are finished and return
+    if ( !any_motors_still_retracting ) {
+
+        driven_instrument->deployed = false;
+        driven_instrument->driver_state = D_DEPLOYMENT_E;
+        return 1;
+    }
+    return 0;
+}
+
+double measure_extension( motor_e which_motor ) {
+
+    double extension = read_pin( INSTRUMENT_GENERIC_E, motor_pins[ which_motor ] );
+    return extension;
+}
+
+void generic_sample(void) {
+
+    //guard condition
+    if ( driven_instrument->driver_state != D_READY_E ) {
+
+        driven_instrument->driver_state = D_ERROR_E;
+        return;
+    }
+
+    //simulate output to a physical instrument
+    driven_instrument->driver_state = D_SAMPLING_E;
+    update_pin( INSTRUMENT_GENERIC_E, OUTPUT_PIN_1, 68.0 );
+
+    //simulate a sample, process, and populate the struct
+    double reading = instrument_reading_generic();
+    time_t sample_time = time(NULL);
+    sample_t* sample_buffer = driven_instrument->sample_buffer;
+    sample_buffer->timestamp = sample_time;
+    sample_buffer->samples[ 0 ] = reading;
+    process_sample( sample_buffer );
+
+    //squeeze that struct into the storage buffer
+    csv_t* storage_buffer = driven_instrument->storage_buffer;
+    int flat_array_index = storage_buffer->columns_int * storage_buffer->cursor;
+    storage_buffer->data_ptr[ flat_array_index ] = (double) sample_buffer->timestamp;
+    storage_buffer->data_ptr[ flat_array_index + 1 ] = (double) sample_buffer->flags;
+    for ( int i = 0; i < GENERIC_DOUBLES_PER_SAMPLE; i++ ) {
+
+        storage_buffer->data_ptr[ flat_array_index + ( i + 2 ) ] = sample_buffer->samples[ i ];
+    }
+    storage_buffer->cursor++;
+
+    //update driver state
+    driven_instrument->driver_state = D_READY_E;
+}
+
+unsigned char process_sample( sample_t* sample ) {
+
+    for ( int i = 0; i < GENERIC_FLAGS_IN_USE; i ++ ) {
+
+        if ( flag_conditions[ i ]( sample ) ) {
+
+            /*
+            set the i'th bit from the left using the << left-shift operator
+            to 1 if it is 0 using the |= or operator
+            IE to set the third flag:
+            XXXXX0XX
+            OR
+            00000100
+            =
+            XXXXX1XX
+            */
+            sample->flags |= ( 1 << i );
         }
+        //otherwise remains 0 by default
     }
-
-    // Transition to IDLE state
-    error_code_t state_result = generic_driver_set_state(driver, DRIVER_STATE_IDLE);
-    if (state_result != ERROR_NONE)
-    {
-        driver->is_operational = false;
-        return state_result;
-    }
-
-    return ERROR_NONE;
 }
 
-error_code_t generic_driver_take_sample(generic_driver_t *driver,
-                                        void *sample_buffer)
-{
-    if (!driver || !sample_buffer)
-    {
-        return ERROR_NULL_POINTER;
-    }
+bool data_flag_generic_1( sample_t* sample ) {
 
-    if (!driver->is_operational)
-    {
-        return ERROR_HARDWARE_FAILURE;
-    }
-
-    // Validate state transition
-    error_code_t state_result = generic_driver_set_state(driver, DRIVER_STATE_SAMPLING);
-    if (state_result != ERROR_NONE)
-    {
-        return state_result;
-    }
-
-    // Call driver-specific sampling function
-    if (driver->ops->sample)
-    {
-        error_code_t result = driver->ops->sample(driver, sample_buffer);
-
-        if (result == ERROR_NONE)
-        {
-            driver->sample_count++;
-            // Could add timestamp here if we have a time source
-        }
-
-        // Return to IDLE state regardless of result
-        generic_driver_set_state(driver, DRIVER_STATE_IDLE);
-        return result;
-    }
-
-    // No sample function implemented
-    generic_driver_set_state(driver, DRIVER_STATE_ERROR);
-    driver->is_operational = false;
-    return ERROR_NOT_IMPLEMENTED;
+    if ( sample->samples[ 0 ] == 69.0 ) return true;
+    return false;
 }
 
-error_code_t generic_driver_calibrate(generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return ERROR_NULL_POINTER;
-    }
+bool data_flag_generic_2( sample_t* sample ) {
 
-    if (!driver->is_operational)
-    {
-        return ERROR_HARDWARE_FAILURE;
-    }
-
-    // Validate state transition
-    error_code_t state_result = generic_driver_set_state(driver, DRIVER_STATE_CALIBRATING);
-    if (state_result != ERROR_NONE)
-    {
-        return state_result;
-    }
-
-    // Call driver-specific calibration function
-    if (driver->ops->calibrate)
-    {
-        error_code_t result = driver->ops->calibrate(driver);
-
-        // Return to IDLE state
-        generic_driver_set_state(driver, DRIVER_STATE_IDLE);
-        return result;
-    }
-
-    // No calibration function implemented
-    generic_driver_set_state(driver, DRIVER_STATE_ERROR);
-    driver->is_operational = false;
-    return ERROR_NOT_IMPLEMENTED;
+    return false;
 }
 
-error_code_t generic_driver_emergency_stop(generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return ERROR_NULL_POINTER;
-    }
+bool data_flag_generic_3( sample_t* sample ) {
 
-    // Set emergency flag
-    driver->is_operational = false;
-
-    // Call driver-specific emergency function if available
-    if (driver->ops->emergency)
-    {
-        error_code_t result = driver->ops->emergency(driver);
-        if (result != ERROR_NONE)
-        {
-            // Log error but continue with generic emergency handling
-        }
-    }
-
-    // Force transition to error state
-    driver->state = DRIVER_STATE_ERROR;
-
-    return ERROR_NONE;
+    return false;
 }
 
-error_code_t generic_driver_set_state(generic_driver_t *driver,
-                                      driver_state_t new_state)
-{
-    if (!driver)
-    {
-        return ERROR_NULL_POINTER;
-    }
+bool data_flag_generic_4( sample_t* sample ) {
 
-    // Validate state transition
-    error_code_t valid = generic_driver_validate_state_transition(driver->state, new_state);
-    if (valid != ERROR_NONE)
-    {
-        return valid;
-    }
-
-    // Special handling for error state
-    if (new_state == DRIVER_STATE_ERROR)
-    {
-        driver->is_operational = false;
-    }
-
-    driver->state = new_state;
-    return ERROR_NONE;
+    return false;
 }
 
-error_code_t generic_driver_validate_state_transition(driver_state_t current_state,
-                                                      driver_state_t new_state)
-{
-    if (current_state >= DRIVER_STATE_COUNT || new_state >= DRIVER_STATE_COUNT)
-    {
-        return ERROR_INVALID_ARGUMENT;
-    }
+bool data_flag_generic_5( sample_t* sample ) {
 
-    if (!state_transitions[current_state][new_state])
-    {
-        return ERROR_UNEXPECTED_STATE;
-    }
-
-    return ERROR_NONE;
+    return false;
 }
 
-driver_state_t generic_driver_get_state(const generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return DRIVER_STATE_ERROR;
-    }
-    return driver->state;
+bool data_flag_generic_6( sample_t* sample ) {
+
+    return false;
 }
 
-bool generic_driver_is_operational(const generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return false;
-    }
-    return driver->is_operational;
+bool data_flag_generic_7( sample_t* sample ) {
+
+    return false;
 }
 
-error_code_t generic_driver_cleanup(generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return ERROR_NULL_POINTER;
-    }
+bool data_flag_generic_8( sample_t* sample ) {
 
-    // Call driver-specific cleanup
-    if (driver->ops->cleanup)
-    {
-        driver->ops->cleanup(driver);
-    }
-
-    // Reset driver state
-    driver->state = DRIVER_STATE_UNINITIALIZED;
-    driver->ops = NULL;
-    driver->config = NULL;
-    driver->hardware_context = NULL;
-    driver->sample_count = 0;
-    driver->is_operational = false;
-
-    return ERROR_NONE;
-}
-
-// Utility functions
-const char *generic_driver_get_name(const generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return "INVALID_DRIVER";
-    }
-    return driver->driver_name;
-}
-
-uint32_t generic_driver_get_sample_count(const generic_driver_t *driver)
-{
-    if (!driver)
-    {
-        return 0;
-    }
-    return driver->sample_count;
-}
-
-// Addition to link with simulator
-error_code_t generic_sample(generic_driver_t *driver, void *sample_buffer)
-{
-    if (!driver || !sample_buffer)
-        return ERROR_NULL_POINTER;
-
-    if (!driver->hardware_context)
-        return ERROR_HARDWARE_FAILURE;
-
-    instrument_mount_t *mount =
-        (instrument_mount_t *)driver->hardware_context;
-
-    // Modify the mount directly:
-    mount->pins[PIN_GENERIC_E] = 68;
-
-    // Could also use update_pin()
-    // update_pin(
-    //     INSTRUMENT_GENERIC_E, // If needed, but better avoided (see below)
-    //     PIN_GENERIC_E,
-    //     68);
-
-    double reading = mount->instrument_reading();
-
-    *(double *)sample_buffer = reading;
-
-    return ERROR_NONE;
+    return false;
 }
