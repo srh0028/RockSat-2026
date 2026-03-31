@@ -1,6 +1,9 @@
 
 #include "flight_software/controllers/generic_controller.h"
+#include "flight_software/drivers/sim_generic_driver.h"
+// #include "flight_software/drivers/sim_timer_driver.h"
 #include "flight_software/flight_software_types.h"
+#include <time.h>
 
 environment_e environment = SIMULATION_E;
 timed_event_handler generic_event_handlers[ TIMED_EVENT_COUNT ] = {
@@ -32,14 +35,28 @@ sample_t generic_sample_buffer = {
     0.0,
     { 0.0 },
     0,
-    0
+    0,
+    0.0,
+    0.0
 };
 double generic_csv_data_buffer[ GENERIC_DATA_BUFFER_SIZE ] = { 0.0 };
+char* csv_column_names[ GENERIC_STORAGE_COLUMNS ] = {
+
+    "timestamp",
+    "controller state",
+    "controller errors",
+    "driver state",
+    "driver errors",
+    "flags",
+    "data"
+};
 csv_t generic_storage_buffer = {
 
     GENERIC_OUTPUT_FILE_NAME,
     0,
-    GENERIC_CSV_COLUMNS_COUNT,
+    GENERIC_STORAGE_COLUMNS,
+    csv_column_names,
+    false,
     &generic_csv_data_buffer[ 0 ],
     GENERIC_SAMPLES_PER_WRITE,
     0
@@ -53,7 +70,8 @@ instrument_t generic_instrument = {
     -1,
     false,
     &generic_sample_buffer,
-    &generic_storage_buffer
+    &generic_storage_buffer,
+    GC_PERIPHERAL_COLUMNS //starts printing in the CSV after the controller's peripheral columns
 };
 controller_t generic_controller = {
 
@@ -64,6 +82,7 @@ controller_t generic_controller = {
     false,
     NULL
 };
+bool errors[ GENERIC_CONTROLLER_ERROR_COUNT ] = { false };
 
 void generic_controller_setup(void) {
 
@@ -96,32 +115,15 @@ void generic_controller_setup(void) {
 
     //formally initialize the controller
     controller_state_e status = initialize();
-    if ( status == C_ERROR_E ) {
 
-        //THROW SOME KIND OF GIANT ERROR
-        return;
-    }
+    //presume no errors have occured yet
+    for ( int i = 0; i < GENERIC_CONTROLLER_ERROR_COUNT; i ++ ) errors[ i ] = false;
 }
 
 void generic_controller_loop(void) {
 
-    //guard condition
-    if ( generic_controller.state == C_ERROR_E ) {
-
-        puts( "GENERIC_CONTROLLER.STATE == C_ERROR_E" );
-        return;
-    }
-
     //initialize if necessary (THIS SHOULD NEVER HAPPEN BUT JUST IN CASE?)
-    if ( generic_controller.state == C_UNINITIALIZED_E ) {
-
-        controller_state_e status = initialize();
-        if ( status == C_ERROR_E ) {
-
-            //THROW SOME KIND OF GIANT ERROR
-            return;
-        }
-    }
+    if ( generic_controller.state == C_UNINITIALIZED_E ) initialize();
 
     //controller must be initialized by this point. check for timed events
     int status = -1;
@@ -136,7 +138,7 @@ void generic_controller_loop(void) {
             break;
 
         default:
-            generic_controller.state = C_ERROR_E;
+            errors[ C_ERROR_ENVIRONMENT_FALLTHROUGH_E ] = true;
             return;
     }
 
@@ -156,7 +158,7 @@ void generic_controller_loop(void) {
             break;
 
         default:
-            generic_controller.state = C_ERROR_E;
+            errors[ C_ERROR_TIMED_EVENT_FALLTHROUGH_E ] = true;
             return;
     }
 
@@ -196,20 +198,48 @@ int read_in_flight_timed_event(void) {
 
 void sample_cycle(void) {
 
+    printf( "%s\n", "sample_cycle()" );
+
     //guard condition
-    if ( generic_controller.state != C_READY_E ) return;
+    if ( generic_controller.state != C_READY_E ) errors[ C_ERROR_UNPREPARED_TO_SAMPLE_E ] = true;
 
     //Begin sample cycle
     generic_controller.state = C_SAMPLING_E;
     instrument_t* instrument;
-    csv_t* storage_buffer;
+    csv_t* storage_buffer = &generic_storage_buffer;
+    int where = storage_buffer->cursor * storage_buffer->columns_int;
+
+    printf( "%s%d\n", "where index: ", where );
+    printf( "%s%d\n", "cursor: ", storage_buffer->cursor );
+
+
+    double clock_dbl = (double) clock() * 1000 / CLOCKS_PER_SEC;
+    
+    // printf( "%s%f\n", "clock: ", clock_dbl );
+    
+    storage_buffer->data_ptr[ where ] = clock_dbl;
+
+
+    double state_dbl = (double) generic_controller.state;
+
+    // printf( "%s%f\n", "state: ", state_dbl );
+
+    storage_buffer->data_ptr[ where + 1 ] = state_dbl;
+    
+
+    double error_flags_dbl = crunch_flags( errors, GENERIC_CONTROLLER_ERROR_COUNT );
+    
+    printf( "%s%f\n", "flags: ", error_flags_dbl );
+
+    storage_buffer->data_ptr[ where + 2 ] = error_flags_dbl;
+
+
     for ( int driver = 0; driver < DRIVERS_UTILIZED_GENERIC; driver++ ) {
 
         //grab each driver
         instrument = generic_controller.instruments[ driver ];
-        storage_buffer = instrument->storage_buffer;
-        if ( instrument->driver_state != D_READY_E ) continue; 
-        if ( storage_buffer->cursor == ( storage_buffer->max_rows - 1 ) ) {
+        // if ( instrument->driver_state != D_READY_E ) continue; 
+        if ( storage_buffer->cursor >= ( GENERIC_SAMPLES_PER_WRITE - 1 ) ) {
 
             //save that driver's storage buffer to memory if it's time and reset that buffer
             save_buffer_to_sim_sd( storage_buffer );
@@ -220,20 +250,17 @@ void sample_cycle(void) {
     }
 
     //reset controller state
+    storage_buffer->cursor ++;
     generic_controller.state = C_READY_E;
 }
 
 void deploy(void) {
 
-    //guard conditions
+    //guard condition
     if ( generic_controller.state == C_UNINITIALIZED_E ) {
 
-        generic_controller.state = C_ERROR_E;
-        return;
-    }
-    if ( generic_controller.state == C_ERROR_E ) {
-
-        return;
+        errors[ C_ERROR_DEPLOYMENT_WHILE_UNINITIALIZED_E ] = true;
+        initialize();
     }
 
     //Ensure all instruments are deploying. Do not start sampling before complete deployment
@@ -242,7 +269,6 @@ void deploy(void) {
     for ( int driver = 0; driver < DRIVERS_UTILIZED_GENERIC; driver++ ) {
 
         instrument = generic_controller.instruments[ driver ];
-        if ( instrument->driver_state == D_ERROR_E ) continue;
         if ( instrument->deployed == false ) {
 
             generic_controller.state = C_DEPLOYING_E;
@@ -269,7 +295,6 @@ void retract(void) {
     for ( int driver = 0; driver < DRIVERS_UTILIZED_GENERIC; driver++ ) {
 
         instrument = generic_controller.instruments[ driver ];
-        if ( instrument->driver_state == D_ERROR_E ) continue;
         if ( instrument->deployed == true ) {
 
             generic_controller.state = C_RETRACTING_E;
@@ -279,10 +304,7 @@ void retract(void) {
     }
 
     //update controller state
-    if ( any_motors_left_to_retract == false ) {
-
-        generic_controller.state = C_UNDEPLOYED_E;
-    }
+    if ( any_motors_left_to_retract == false ) generic_controller.state = C_UNDEPLOYED_E;
 }
 
 //DEPLOY IF NOT DEPLOYED, SAMPLE IF DEPLOYED

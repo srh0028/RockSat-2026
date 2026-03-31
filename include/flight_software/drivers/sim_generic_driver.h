@@ -7,13 +7,16 @@
 #include <stddef.h>
 
 #define GENERIC_FLAGS_IN_USE 2
-#define GENERIC_DOUBLES_PER_SAMPLE 1
+#define GENERIC_DOUBLES_PER_SAMPLE 2 //data flags, data itself
 #define GENERIC_SAMPLES_PER_WRITE 16
-#define GENERIC_OUTPUT_FILE_NAME "Generic Instrument Data"
-#define GENERIC_CSV_COLUMNS_COUNT ( GENERIC_DOUBLES_PER_SAMPLE + 2 )
-#define GENERIC_DATA_BUFFER_SIZE ( GENERIC_CSV_COLUMNS_COUNT * GENERIC_SAMPLES_PER_WRITE )
+#define SGD_PERIPHERAL_COLUMNS 2 //driver state, driver error flags
+#define GENERIC_CSV_COLUMNS_COUNT ( GENERIC_DOUBLES_PER_SAMPLE + SGD_PERIPHERAL_COLUMNS )
+#define GENERIC_DATA_BUFFER_SIZE ( GENERIC_STORAGE_COLUMNS * GENERIC_SAMPLES_PER_WRITE )
+#define OUTPUT_PIN_1 PIN_0_E
 
 typedef enum motor_e motor_e;
+typedef enum sim_generic_driver_error_e sim_generic_driver_error_e;
+
 enum motor_e {
 
     MOTOR_1_E,
@@ -28,6 +31,21 @@ enum motor_e {
 GENERIC_DRIVER_MOTOR_COUNT
 };
 
+enum sim_generic_driver_error_e {
+
+    D_ERROR_REDUNDANT_INITIALIZATION_E,
+    D_ERROR_RIDICULOUS_BOOM_EXTENSION_E,
+    D_ERROR_SAMPLE_BUFFER_NPE_E,
+    D_ERROR_STORAGE_BUFFER_NPE_E,
+    D_ERROR_ILLEGAL_DEPLOYMENT_E,
+    D_ERROR_REDUNDANT_DEPLOYMENT_E,
+    D_ERROR_ILLEGAL_RETRACTION_E,
+    D_ERROR_REDUNDANT_RETRACTION_E,
+    D_ERROR_ILLEGAL_SAMPLE_E,
+
+SIM_GENERIC_DRIVER_ERROR_COUNT
+};
+
 /**
  * @brief Initializes the instrument driver. Injects a reference to the sample buffer into the driver.
  * @note Leaves the initialized instrument in the DEPLOYMENT_E state.
@@ -35,13 +53,8 @@ GENERIC_DRIVER_MOTOR_COUNT
  * @param target_deployment_inches int
  * @param sample_buffer sample_t* allocated by calling code
  * @param storage_buffer csv_t* allocated by calling code
- * @retval -1: This driver was already initialized
- * @retval -2: Instrument is asked to deploy further than 10 feet, which is ridiculous
- * @retval -3: Sample buffer NPE
- * @retval -4: Storage buffer NPE
- * @retval 1: success
  */
-int initialize_driver( instrument_t* instrument,
+void initialize_driver( instrument_t* instrument,
                     int target_deployment_inches, 
                     sample_t* sample_buffer,
                     csv_t* storage_buffer );
@@ -49,12 +62,8 @@ int initialize_driver( instrument_t* instrument,
 /**
  * @brief Deploys the instrumentation this driver is responsible for.
  * @note Leaves the instrument in the READY_E state.
- * @retval -1: Illegal driver state
- * @retval -2: Driver already deployed
- * @retval 0: Still deploying at least one motor
- * @retval 1: All motors successfully deployed
  */
-int generic_deploy_instrumentation(void);
+void generic_deploy_instrumentation(void);
 
 /**
  * @brief Retracts the driven instrumentation
@@ -64,7 +73,7 @@ int generic_deploy_instrumentation(void);
  * @retval 0: still retracting at least one motor
  * @retval 1: all motors retracted
  */
-int generic_retract_instrumentation(void);
+void generic_retract_instrumentation(void);
 
 /**
  * @brief Returns a double indicating how extended the argued motor has become.

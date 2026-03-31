@@ -2,11 +2,35 @@
 #ifndef GENERIC_CONTROLLER_H
 #define GENERIC_CONTROLLER_H
 
-#include "flight_software/drivers/generic_driver.h"
+#include "flight_software/drivers/sim_generic_driver.h"
+// #include "flight_software/drivers/sim_timer_driver.h"
 #include "flight_software/flight_software_types.h"
 #include "simulation/real_time_engine.h"
 
+/* all caps means peripheral to this scope
+TIMESTAMP
+CONTROLLER STATE
+CONTROLLER ERRORS
+driver state
+driver errors
+flags
+data
+*/
+#define GC_PERIPHERAL_COLUMNS 3
 #define DRIVERS_UTILIZED_GENERIC 1
+#define GENERIC_OUTPUT_FILE_NAME "Generic Instrument Data"
+#define GENERIC_STORAGE_COLUMNS ( GENERIC_CSV_COLUMNS_COUNT + GC_PERIPHERAL_COLUMNS )
+
+typedef enum generic_controller_errors_e generic_controller_errors_e;
+enum generic_controller_errors_e {
+
+    C_ERROR_ENVIRONMENT_FALLTHROUGH_E,
+    C_ERROR_TIMED_EVENT_FALLTHROUGH_E,
+    C_ERROR_DEPLOYMENT_WHILE_UNINITIALIZED_E,
+    C_ERROR_UNPREPARED_TO_SAMPLE_E,
+
+GENERIC_CONTROLLER_ERROR_COUNT
+};
 
 /**
  * @brief Entry point for the controller. Use this to link up the controller struct

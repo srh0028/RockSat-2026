@@ -3,7 +3,7 @@
 
 instrument_mount_t instrument_1 = {
 
-    "Negative Altitude instrument",
+    "Timer Instrument",
     instrument_reading_1,
     reset_instrument_1,
     { 0.0 }
@@ -11,7 +11,7 @@ instrument_mount_t instrument_1 = {
 
 double instrument_reading_1(void) {
 
-    return -1.0 * simulation.current_altitude_dbl;
+    return (double) simulation.current_tick_int;
 }
 
 void reset_instrument_1(void) {

@@ -293,28 +293,83 @@ void open_explorer_to_location( char* folder_ptr ) {
     ShellExecuteA( NULL, "open", "explorer.exe", total_path, NULL, SW_SHOWNORMAL );
 }
 
-void save_buffer_to_sim_sd( csv_t* csv ) {
-
-    if ( !csv || !csv->data_ptr || csv->cursor == 0 ) return;
+void save_buffer_to_sim_sd(csv_t* csv) {
+    if (!csv || !csv->data_ptr || csv->cursor == 0) return;
     
-    // Just like Arduino code!
+    // Open file
     File* dataFile = SD.open(csv->file_name_ptr, FILE_WRITE);
     
     if (dataFile) {
+        // Write headers if not printed yet
+        if (!csv->headers_printed) {
+            // column_names is a pointer to an array of strings
+            char** names = (char**)csv->column_names;
+            
+            for (int col = 0; col < csv->columns_int; col++) {
+                dataFile->print(dataFile, names[col]);  // Print column name
+                
+                if (col < csv->columns_int - 1) {
+                    dataFile->print(dataFile, ",");
+                }
+            }
+            dataFile->println(dataFile);
+            csv->headers_printed = true;
+        }
+        
+        // Write data rows
         for (int row = 0; row < csv->cursor; row++) {
             for (int col = 0; col < csv->columns_int; col++) {
-                double value = csv->data_ptr[ ( row * csv->columns_int ) + col ];
+                double value = csv->data_ptr[(row * csv->columns_int) + col];
                 
-                // Arduino automatically handles float formatting!
+                // Print the double value
                 dataFile->print_float(dataFile, value);
                 
                 if (col < csv->columns_int - 1) {
-                    dataFile->print(dataFile, ",");  // print string
+                    dataFile->print(dataFile, ",");
                 }
             }
-            dataFile->println(dataFile);  // Just newline
+            dataFile->println(dataFile);
         }
         
-        dataFile->close(dataFile);  // Close when done
+        dataFile->close(dataFile);
+    }
+}
+
+double crunch_flags(bool bool_array[], int size) {
+
+    // printf( "%s\n", "crunch_flags()" );
+
+    uint64_t flags = 0ULL;
+
+    // printf( "%s%f\n", "flags (initial:) ", (double) flags );
+    
+    for (int i = 0; i < size && i < 53; i++) {  // 53 bits max for exact double
+        if (bool_array[i]) {
+
+            // printf( "%s%d\n", "flipping flag: ", i );
+
+            flags |= (1ULL << i);
+        }
+    }
+    
+    // printf( "%s%f\n", "flags (final:) ", (double) flags );
+
+    return (double)flags;  // Return as double
+}
+
+void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index) {
+    if (!storage_buffer || !sample || storage_buffer->cursor >= storage_buffer->max_rows) {
+        return;
+    }
+    
+    // Calculate the starting index for the current row
+    int row_start_index = storage_buffer->columns_int * storage_buffer->cursor;
+    
+    // Write the flags (cast to double)
+    storage_buffer->data_ptr[row_start_index + first_column_index] = (double)sample->data_flags;
+    
+    // Write the sample doubles
+    for (int i = 0; i < sample->sample_double_count; i++) {
+        storage_buffer->data_ptr[row_start_index + (first_column_index + 1 + i)] = sample->samples[i];
     }
 }

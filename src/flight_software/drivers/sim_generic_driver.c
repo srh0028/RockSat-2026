@@ -1,13 +1,11 @@
 
-#include "flight_software/drivers/generic_driver.h"
+#include "flight_software/drivers/sim_generic_driver.h"
 #include "flight_software/flight_software_types.h"
 #include "simulation/generic_mount.h"
 #include <memory.h>
 
 #define GENERIC_SAMPLE_SIZE 1
 #define BITS_PER_BYTE 8
-
-#define OUTPUT_PIN_1 PIN_0_E
 
 instrument_t* driven_instrument = NULL;
 data_flag_condition flag_conditions[ BITS_PER_BYTE ] = {
@@ -32,32 +30,32 @@ pin_e motor_pins[ GENERIC_DRIVER_MOTOR_COUNT ] = {
     PIN_13_E,
     PIN_12_E,
 };
+bool sgd_errors[ SIM_GENERIC_DRIVER_ERROR_COUNT ] = { false };
 
-int initialize_driver( instrument_t* instrument,
+void initialize_driver( instrument_t* instrument,
                     int target_deployment_inches, 
                     sample_t* sample_buffer,
                     csv_t* storage_buffer ) {
 
+    //I wanted to put this lower in the method but alas
+    for ( int i = 0; i < SIM_GENERIC_DRIVER_ERROR_COUNT; i ++ ) sgd_errors[ i ] = false;
+
     //guard conditions
     if ( instrument->driver_state != D_UNINITIALIZED_E ) {
 
-        instrument->driver_state = D_ERROR_E;
-        return -1;
+        sgd_errors[ D_ERROR_REDUNDANT_INITIALIZATION_E ] = true;
     }
     if ( target_deployment_inches > MAX_IMAGINABLE_BOOM_EXTENSION_INCHES ) {
 
-        instrument->driver_state = D_ERROR_E;
-        return -2;
+        sgd_errors[ D_ERROR_RIDICULOUS_BOOM_EXTENSION_E ] = true;
     }
     if ( !sample_buffer ) {
 
-        instrument->driver_state = D_ERROR_E;
-        return -3;
+        sgd_errors[ D_ERROR_SAMPLE_BUFFER_NPE_E ] = true;
     }
     if ( !storage_buffer ) {
 
-        instrument->driver_state = D_ERROR_E;
-        return -4;
+        sgd_errors[ D_ERROR_STORAGE_BUFFER_NPE_E ] = true;
     }
 
     //initialize and return
@@ -67,22 +65,16 @@ int initialize_driver( instrument_t* instrument,
     instrument->sample_buffer = sample_buffer;
     driven_instrument = instrument;
     driven_instrument->driver_state = D_DEPLOYMENT_E;
-    return 1;
 }
 
-int generic_deploy_instrumentation(void) {
+void generic_deploy_instrumentation(void) {
 
     //guard conditions
     if ( driven_instrument->driver_state != D_DEPLOYMENT_E ) {
 
-        driven_instrument->driver_state = D_ERROR_E;
-        return -1;
+        sgd_errors[ D_ERROR_ILLEGAL_DEPLOYMENT_E ] = true;
     }
-    if ( driven_instrument->deployed ) {
-
-        driven_instrument->driver_state = D_ERROR_E;
-        return -2;
-    }
+    if ( driven_instrument->deployed ) sgd_errors[ D_ERROR_REDUNDANT_DEPLOYMENT_E ] = true;
 
     //check each motor
     double deployment_buffer = -1.0;
@@ -103,23 +95,19 @@ int generic_deploy_instrumentation(void) {
 
         driven_instrument->deployed = true;
         driven_instrument->driver_state = D_READY_E;
-        return 1;
     }
-    return 0;
 }
 
-int generic_retract_instrumentation(void) {
+void generic_retract_instrumentation(void) {
 
     //guard conditions
     if ( driven_instrument->driver_state != D_READY_E ) {
 
-        driven_instrument->driver_state = D_ERROR_E;
-        return -1;
+        sgd_errors[ D_ERROR_ILLEGAL_RETRACTION_E ] = true;
     }
     if ( driven_instrument->deployed == false ) {
 
-        driven_instrument->driver_state = D_ERROR_E;
-        return -2;
+        sgd_errors[ D_ERROR_REDUNDANT_RETRACTION_E ] = true;
     }
 
     //check each motor
@@ -141,9 +129,7 @@ int generic_retract_instrumentation(void) {
 
         driven_instrument->deployed = false;
         driven_instrument->driver_state = D_DEPLOYMENT_E;
-        return 1;
     }
-    return 0;
 }
 
 double measure_extension( motor_e which_motor ) {
@@ -155,11 +141,7 @@ double measure_extension( motor_e which_motor ) {
 void generic_sample(void) {
 
     //guard condition
-    if ( driven_instrument->driver_state != D_READY_E ) {
-
-        driven_instrument->driver_state = D_ERROR_E;
-        return;
-    }
+    if ( driven_instrument->driver_state != D_READY_E ) sgd_errors[ D_ERROR_ILLEGAL_SAMPLE_E ] = true;
 
     //simulate output to a physical instrument
     driven_instrument->driver_state = D_SAMPLING_E;
@@ -167,22 +149,15 @@ void generic_sample(void) {
 
     //simulate a sample, process, and populate the struct
     double reading = instrument_reading_generic();
-    time_t sample_time = time(NULL);
     sample_t* sample_buffer = driven_instrument->sample_buffer;
-    sample_buffer->timestamp = sample_time;
     sample_buffer->samples[ 0 ] = reading;
+    sample_buffer->driver_state = (double) driven_instrument->driver_state;
+    sample_buffer->driver_error_flags = crunch_flags( sgd_errors, SIM_GENERIC_DRIVER_ERROR_COUNT );
     process_sample( sample_buffer );
 
     //squeeze that struct into the storage buffer
     csv_t* storage_buffer = driven_instrument->storage_buffer;
-    int flat_array_index = storage_buffer->columns_int * storage_buffer->cursor;
-    storage_buffer->data_ptr[ flat_array_index ] = (double) sample_buffer->timestamp;
-    storage_buffer->data_ptr[ flat_array_index + 1 ] = (double) sample_buffer->flags;
-    for ( int i = 0; i < GENERIC_DOUBLES_PER_SAMPLE; i++ ) {
-
-        storage_buffer->data_ptr[ flat_array_index + ( i + 2 ) ] = sample_buffer->samples[ i ];
-    }
-    storage_buffer->cursor++;
+    write_sample_to_csv( storage_buffer, sample_buffer, driven_instrument->first_index_in_csv );
 
     //update driver state
     driven_instrument->driver_state = D_READY_E;
@@ -204,7 +179,7 @@ unsigned char process_sample( sample_t* sample ) {
             =
             XXXXX1XX
             */
-            sample->flags |= ( 1 << i );
+            sample->data_flags |= ( 1 << i );
         }
         //otherwise remains 0 by default
     }

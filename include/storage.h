@@ -2,6 +2,9 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
+#include <stdbool.h>
+#include "flight_software/flight_software_types.h"
+
 #define OUTPUT_FOLDER_NAME "Simulator Output"
 #define FLIGHT_PROFILES_FOLDER_NAME "Simulator Flight Profiles"
 #define FILE_EXTENSION ".csv"
@@ -14,20 +17,8 @@
 #define PARABOLIC_FLIGHT_FILE_NAME "Default Parabolic"
 #define NO_TIMED_EVENT_DOUBLE -1.0
 
-/**
- * @brief Represents a .csv in memory.
- * @note file_name_ptr and data_ptr MUST be malloc() since they are free() later
- */
 typedef struct csv_t csv_t;
-struct csv_t {
-
-    char* file_name_ptr;
-    int rows_int;
-    int columns_int;
-    double* data_ptr;
-    int max_rows;
-    int cursor;
-};
+typedef struct sample_t sample_t;
 
 /**
  * @brief Replaces a folder if it doesn't exist.
@@ -94,5 +85,20 @@ void open_explorer_to_location( char* folder_ptr );
  * @brief Saves a controller's storage buffer to simulated SD card
  */
 void save_buffer_to_sim_sd( csv_t *csv );
+
+/**
+ * @brief Turns an array of booleans into a double which represents them all bitwise.
+ * @param bool_array bool* pointer to the bool array
+ * @param size int size of the bool array
+ */
+double crunch_flags(bool bool_array[], int size);
+
+/**
+ * @brief Writes a sample_t into a csv_t.
+ * @param storage_buffer csv_t*
+ * @param sample sample_t*
+ * @param first_column_index within the csv's data array
+ */
+void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index);
 
 #endif

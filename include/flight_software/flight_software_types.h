@@ -10,6 +10,7 @@
 #define MAX_DRIVERS_PER_CONTROLLER 8
 #define ENCODER_UNITS_PER_INCH 385.75
 #define MAX_IMAGINABLE_BOOM_EXTENSION_INCHES 120
+#define MAX_ERROR_FLAGS 8
 
 typedef enum controller_state_e controller_state_e;
 typedef enum driver_state_e driver_state_e;
@@ -36,7 +37,6 @@ enum controller_state_e {
     C_READY_E,
     C_SAMPLING_E,
     C_RETRACTING_E,
-    C_ERROR_E,
 
 CONTROLLER_STATE_COUNT
 };
@@ -120,10 +120,27 @@ ENVIRONMENT_COUNT
 
 struct sample_t {
 
-    time_t timestamp;
     double samples[ MAX_DOUBLES_PER_SAMPLE ];
     int sample_double_count;
-    unsigned char flags;
+    unsigned char data_flags;
+    double driver_state;
+    double driver_error_flags
+};
+
+/**
+ * @brief Represents a .csv in memory.
+ */
+typedef struct csv_t csv_t;
+struct csv_t {
+
+    char* file_name_ptr;
+    int rows_int;
+    int columns_int;
+    char** column_names;
+    bool headers_printed;
+    double* data_ptr;
+    int max_rows;
+    int cursor;
 };
 
 struct instrument_t {
@@ -136,6 +153,7 @@ struct instrument_t {
     bool deployed;
     sample_t* sample_buffer;
     csv_t* storage_buffer;
+    int first_index_in_csv;
 };
 
 struct controller_t {
