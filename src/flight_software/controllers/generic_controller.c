@@ -198,7 +198,7 @@ int read_in_flight_timed_event(void) {
 
 void sample_cycle(void) {
 
-    printf( "%s\n", "sample_cycle()" );
+    // printf( "%s\n", "sample_cycle()" );
 
     //guard condition
     if ( generic_controller.state != C_READY_E ) errors[ C_ERROR_UNPREPARED_TO_SAMPLE_E ] = true;
@@ -209,8 +209,8 @@ void sample_cycle(void) {
     csv_t* storage_buffer = &generic_storage_buffer;
     int where = storage_buffer->cursor * storage_buffer->columns_int;
 
-    printf( "%s%d\n", "where index: ", where );
-    printf( "%s%d\n", "cursor: ", storage_buffer->cursor );
+    // printf( "%s%d\n", "where index: ", where );
+    // printf( "%s%d\n", "cursor: ", storage_buffer->cursor );
 
 
     double clock_dbl = (double) clock() * 1000 / CLOCKS_PER_SEC;
@@ -229,7 +229,7 @@ void sample_cycle(void) {
 
     double error_flags_dbl = crunch_flags( errors, GENERIC_CONTROLLER_ERROR_COUNT );
     
-    printf( "%s%f\n", "flags: ", error_flags_dbl );
+    // printf( "%s%f\n", "flags: ", error_flags_dbl );
 
     storage_buffer->data_ptr[ where + 2 ] = error_flags_dbl;
 
@@ -239,7 +239,7 @@ void sample_cycle(void) {
         //grab each driver
         instrument = generic_controller.instruments[ driver ];
         // if ( instrument->driver_state != D_READY_E ) continue; 
-        if ( storage_buffer->cursor >= ( GENERIC_SAMPLES_PER_WRITE - 1 ) ) {
+        if ( storage_buffer->cursor >= GENERIC_SAMPLES_PER_WRITE + 6 ) {
 
             //save that driver's storage buffer to memory if it's time and reset that buffer
             save_buffer_to_sim_sd( storage_buffer );

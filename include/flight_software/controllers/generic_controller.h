@@ -20,6 +20,7 @@ data
 #define DRIVERS_UTILIZED_GENERIC 1
 #define GENERIC_OUTPUT_FILE_NAME "Generic Instrument Data"
 #define GENERIC_STORAGE_COLUMNS ( GENERIC_CSV_COLUMNS_COUNT + GC_PERIPHERAL_COLUMNS )
+#define GENERIC_DATA_BUFFER_SIZE ( GENERIC_STORAGE_COLUMNS * GENERIC_SAMPLES_PER_WRITE )
 
 typedef enum generic_controller_errors_e generic_controller_errors_e;
 enum generic_controller_errors_e {

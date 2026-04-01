@@ -124,7 +124,7 @@ struct sample_t {
     int sample_double_count;
     unsigned char data_flags;
     double driver_state;
-    double driver_error_flags
+    double driver_error_flags;
 };
 
 /**

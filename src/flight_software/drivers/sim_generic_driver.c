@@ -140,6 +140,8 @@ double measure_extension( motor_e which_motor ) {
 
 void generic_sample(void) {
 
+    // printf( "%s\n", "generic_sample()" );
+
     //guard condition
     if ( driven_instrument->driver_state != D_READY_E ) sgd_errors[ D_ERROR_ILLEGAL_SAMPLE_E ] = true;
 
@@ -152,12 +154,17 @@ void generic_sample(void) {
     sample_t* sample_buffer = driven_instrument->sample_buffer;
     sample_buffer->samples[ 0 ] = reading;
     sample_buffer->driver_state = (double) driven_instrument->driver_state;
-    sample_buffer->driver_error_flags = crunch_flags( sgd_errors, SIM_GENERIC_DRIVER_ERROR_COUNT );
+    sample_buffer->driver_error_flags = crunch_flags( sgd_errors, SIM_GENERIC_DRIVER_ERROR_COUNT );  
     process_sample( sample_buffer );
+
+    // printf( "%s%f\n", "driver state: ", sample_buffer->driver_state );
+    // printf( "%s%f\n", "driver error flags: ", sample_buffer->driver_error_flags );
 
     //squeeze that struct into the storage buffer
     csv_t* storage_buffer = driven_instrument->storage_buffer;
     write_sample_to_csv( storage_buffer, sample_buffer, driven_instrument->first_index_in_csv );
+
+    // printf( "%s\n", "/generic_sample()\n" );
 
     //update driver state
     driven_instrument->driver_state = D_READY_E;
