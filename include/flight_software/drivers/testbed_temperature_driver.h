@@ -10,24 +10,24 @@
 #define TTD_DOUBLES_PER_SAMPLE 2 //data flags, data itself
 #define TTD_SAMPLES_PER_WRITE 16
 #define TTD_PERIPHERAL_COLUMNS 2 //driver state, driver error flags
-#define TTD_CSV_COLUMNS_COUNT ( GENERIC_DOUBLES_PER_SAMPLE + SGD_PERIPHERAL_COLUMNS )
+#define TTD_CSV_COLUMNS_COUNT ( TTD_DOUBLES_PER_SAMPLE + TTD_PERIPHERAL_COLUMNS )
 
-// typedef enum motor_e motor_e;
+typedef enum TTD_motor_e TTD_motor_e;
 typedef enum TTD_error_e TTD_error_e;
 
-// enum TTD_motor_e {
+enum TTD_motor_e {
 
-//     // MOTOR_1_E,
-//     // MOTOR_2_E,
-//     // MOTOR_3_E,
-//     // MOTOR_4_E,
-//     // MOTOR_5_E,
-//     // MOTOR_6_E,
-//     // MOTOR_7_E,
-//     // MOTOR_8_E,
+    MOTOR_1_E,
+    MOTOR_2_E,
+    MOTOR_3_E,
+    MOTOR_4_E,
+    MOTOR_5_E,
+    MOTOR_6_E,
+    MOTOR_7_E,
+    MOTOR_8_E,
 
-// TTD_DRIVER_MOTOR_COUNT
-// };
+TTD_DRIVER_MOTOR_COUNT
+};
 
 enum TTD_error_e {
 
@@ -57,21 +57,21 @@ void TTD_initialize_driver( instrument_t* instrument,
                     sample_t* sample_buffer,
                     csv_t* storage_buffer );
 
-// /**
-//  * @brief Deploys the instrumentation this driver is responsible for.
-//  * @note Leaves the instrument in the READY_E state.
-//  */
-// void TTD_deploy_instrumentation(void);
+/**
+ * @brief Deploys the instrumentation this driver is responsible for.
+ * @note Leaves the instrument in the READY_E state.
+ */
+void TTD_deploy_instrumentation(void);
 
-// /**
-//  * @brief Retracts the driven instrumentation
-//  * @note leaves the driver in DEPLOYMENT_E state
-//  * @retval -1: illegal state
-//  * @retval -2: instrumentation was not deployed to begin with
-//  * @retval 0: still retracting at least one motor
-//  * @retval 1: all motors retracted
-//  */
-// void TTD_retract_instrumentation(void);
+/**
+ * @brief Retracts the driven instrumentation
+ * @note leaves the driver in DEPLOYMENT_E state
+ * @retval -1: illegal state
+ * @retval -2: instrumentation was not deployed to begin with
+ * @retval 0: still retracting at least one motor
+ * @retval 1: all motors retracted
+ */
+void TTD_retract_instrumentation(void);
 
 // /**
 //  * @brief Returns a double indicating how extended the argued motor has become.
