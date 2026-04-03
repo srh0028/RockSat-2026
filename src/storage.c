@@ -318,7 +318,7 @@ void save_buffer_to_sim_sd(csv_t* csv) {
         
         // Write data rows
 
-        printf( "%s%d\n", "csv->cursor: ", csv->cursor );
+        // printf( "%s%d\n", "csv->cursor: ", csv->cursor );
 
         for (int row = 0; row < csv->cursor; row++) {
             for (int col = 0; col < csv->columns_int; col++) {
@@ -360,49 +360,6 @@ double crunch_flags(bool bool_array[], int size) {
 
     return (double)flags;  // Return as double
 }
-
-// #define MAX_SAFE_BITS 53  // Maximum bits for precise double representation
-
-// double crunch_flags(bool bool_array[], int size) {
-//     uint64_t flags = 0ULL;
-//     int max_bits = (size < MAX_SAFE_BITS) ? size : MAX_SAFE_BITS;
-    
-//     for (int i = 0; i < max_bits; i++) {
-//         if (bool_array[i]) {
-//             flags |= (1ULL << i);
-//         }
-//     }
-    
-//     // Warn if we had to truncate
-//     if (size > MAX_SAFE_BITS) {
-//         // Check if any truncated bits were set
-//         bool truncated_bits_set = false;
-//         for (int i = MAX_SAFE_BITS; i < size; i++) {
-//             if (bool_array[i]) {
-//                 truncated_bits_set = true;
-//                 break;
-//             }
-//         }
-        
-//         if (truncated_bits_set) {
-//             printf("Warning: Flags truncated from %d bits to %d bits\n", 
-//                    size, MAX_SAFE_BITS);
-//             // You could also set a special value to indicate truncation
-//             // return -1.0;  // Use negative to indicate overflow
-//         }
-//     }
-    
-//     double result = (double)flags;
-    
-//     // Final safety check
-//     if (isnan(result)) {
-//         printf("Error: NaN produced for flags=0x%llX\n", 
-//                (unsigned long long)flags);
-//         return 0.0;  // Return safe default
-//     }
-    
-//     return result;
-// }
 
 void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index) {
     if (!storage_buffer || !sample || storage_buffer->cursor >= storage_buffer->max_rows) {

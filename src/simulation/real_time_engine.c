@@ -86,9 +86,9 @@ void simulate(void) {
             push_timed_event();
 
             //feed back to the user
-            sim_snapshot();
-            print_active_instruments();
-            trip_user();
+            // sim_snapshot();
+            // print_active_instruments();
+            // trip_user();
         }
 
         //loop all controllers

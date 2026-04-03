@@ -1,7 +1,6 @@
 
-#include "flight_software/controllers/generic_controller.h"
-#include "flight_software/drivers/sim_generic_driver.h"
-// #include "flight_software/drivers/sim_timer_driver.h"
+#include "flight_software/controllers/testbed_temperature_controller.h"
+#include "flight_software/drivers/testbed_temperature_driver.h"
 #include "flight_software/flight_software_types.h"
 #include <time.h>
 
