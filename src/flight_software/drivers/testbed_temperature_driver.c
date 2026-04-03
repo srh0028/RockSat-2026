@@ -183,7 +183,7 @@ bool TTD_negative_flag( sample_t* sample ) {
 
 bool TTD_positive_flag( sample_t* sample ) {
 
-    if ( sample->samples[ 1 ] > 0 ) return true;
+    if ( sample->samples[ 0 ] > 0 ) return true;
     return false;
 }
 
