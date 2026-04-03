@@ -62,7 +62,7 @@ void initialize_driver( instrument_t* instrument,
  * @brief Deploys the instrumentation this driver is responsible for.
  * @note Leaves the instrument in the READY_E state.
  */
-void generic_deploy_instrumentation(void);
+int generic_deploy_instrumentation(void);
 
 /**
  * @brief Retracts the driven instrumentation
@@ -72,7 +72,7 @@ void generic_deploy_instrumentation(void);
  * @retval 0: still retracting at least one motor
  * @retval 1: all motors retracted
  */
-void generic_retract_instrumentation(void);
+int generic_retract_instrumentation(void);
 
 /**
  * @brief Returns a double indicating how extended the argued motor has become.

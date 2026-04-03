@@ -67,7 +67,7 @@ void initialize_driver( instrument_t* instrument,
     driven_instrument->driver_state = D_DEPLOYMENT_E;
 }
 
-void generic_deploy_instrumentation(void) {
+int generic_deploy_instrumentation(void) {
 
     //guard conditions
     if ( driven_instrument->driver_state != D_DEPLOYMENT_E ) {
@@ -96,9 +96,10 @@ void generic_deploy_instrumentation(void) {
         driven_instrument->deployed = true;
         driven_instrument->driver_state = D_READY_E;
     }
+    return 0;
 }
 
-void generic_retract_instrumentation(void) {
+int generic_retract_instrumentation(void) {
 
     //guard conditions
     if ( driven_instrument->driver_state != D_READY_E ) {
@@ -130,6 +131,7 @@ void generic_retract_instrumentation(void) {
         driven_instrument->deployed = false;
         driven_instrument->driver_state = D_DEPLOYMENT_E;
     }
+    return 0;
 }
 
 double measure_extension( motor_e which_motor ) {

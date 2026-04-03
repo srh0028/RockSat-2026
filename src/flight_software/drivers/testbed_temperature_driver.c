@@ -3,6 +3,7 @@
 #include "flight_software/flight_software_types.h"
 #include "simulation/generic_mount.h"
 #include <memory.h>
+#include <stdint.h>
 
 #define GENERIC_SAMPLE_SIZE 1
 #define BITS_PER_BYTE 8
@@ -35,19 +36,19 @@ void initialize_driver( instrument_t* instrument,
     //guard conditions
     if ( instrument->driver_state != D_UNINITIALIZED_E ) {
 
-        sgd_errors[ D_ERROR_REDUNDANT_INITIALIZATION_E ] = true;
+        TTD_errors[ D_ERROR_REDUNDANT_INITIALIZATION_E ] = true;
     }
     if ( target_deployment_inches > MAX_IMAGINABLE_BOOM_EXTENSION_INCHES ) {
 
-        sgd_errors[ D_ERROR_RIDICULOUS_BOOM_EXTENSION_E ] = true;
+        TTD_errors[ D_ERROR_RIDICULOUS_BOOM_EXTENSION_E ] = true;
     }
     if ( !sample_buffer ) {
 
-        sgd_errors[ D_ERROR_SAMPLE_BUFFER_NPE_E ] = true;
+        TTD_errors[ D_ERROR_SAMPLE_BUFFER_NPE_E ] = true;
     }
     if ( !storage_buffer ) {
 
-        sgd_errors[ D_ERROR_STORAGE_BUFFER_NPE_E ] = true;
+        TTD_errors[ D_ERROR_STORAGE_BUFFER_NPE_E ] = true;
     }
 
     //initialize and return
@@ -137,13 +138,25 @@ void TTD_sample(void) {
 
     driven_instrument->driver_state = D_SAMPLING_E;
 
-    //sample, process, and populate the struct
-    double reading = /*THIS IS WHERE WE READ IN THE SAMPLE*/;
+    // read raw value from MAX31865 over SPI
+    uint16_t raw = 0;
+    int status = rtd_read_raw(&raw);
+
+    if (status != 0){
+        TTD_errors[ D_ERROR_ILLEGAL_SAMPLE_E ] = true;
+        driven_instrument->driver_state = D_READY_E;
+        return;
+    }
+
+    // convert raw -> ohms -> celsius
+    float resistance = rtd_raw_to_resistance(raw);
+    double reading = (double) rtd_resistance_to_celsius(resistance);
+
     sample_t* sample_buffer = driven_instrument->sample_buffer;
     sample_buffer->samples[ 0 ] = reading;
     sample_buffer->driver_state = (double) driven_instrument->driver_state;
     sample_buffer->driver_error_flags = crunch_flags( TTD_errors, TTD_ERROR_COUNT );  
-    process_sample( sample_buffer );
+    TTD_process_sample( sample_buffer );
 
     //squeeze that struct into the storage buffer
     csv_t* storage_buffer = driven_instrument->storage_buffer;
@@ -155,7 +168,7 @@ void TTD_sample(void) {
 
 unsigned char TTD_process_sample( sample_t* sample ) {
 
-    for ( int i = 0; i < GENERIC_FLAGS_IN_USE; i ++ ) {
+    for ( int i = 0; i < TTD_FLAGS_IN_USE; i ++ ) {
 
         if ( flag_conditions[ i ]( sample ) ) {
 

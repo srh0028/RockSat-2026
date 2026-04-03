@@ -5,12 +5,32 @@
 #include "flight_software/flight_software_types.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define TTD_FLAGS_IN_USE 2
 #define TTD_DOUBLES_PER_SAMPLE 2 //data flags, data itself
 #define TTD_SAMPLES_PER_WRITE 16
 #define TTD_PERIPHERAL_COLUMNS 2 //driver state, driver error flags
 #define TTD_CSV_COLUMNS_COUNT ( TTD_DOUBLES_PER_SAMPLE + TTD_PERIPHERAL_COLUMNS )
+
+// SPI pins
+#define RTD_PIN_SCK     18
+#define RTD_PIN_MOSI    19
+#define RTD_PIN_MISO    16
+#define RTD_PIN_CS      17
+
+// MAX31865 registers
+#define MAX31865_REG_CONFIG     0x00
+#define MAX31865_REG_RTD_MSB    0x01
+#define MAX31865_REG_RTD_LSB    0x02
+#define MAX31865_REG_FAULT      0x07
+#define MAX31865_WRITE_BIT      0x80
+#define MAX31865_CONFIG_3WIRE   0b11000011
+
+// PT100 constants
+#define RTD_NOMINAL_OHMS        100.0f
+#define RTD_REF_OHMS            430.0f
+#define RTD_ALPHA               0.00385f
 
 typedef enum TTD_motor_e TTD_motor_e;
 typedef enum TTD_error_e TTD_error_e;
@@ -61,7 +81,7 @@ void TTD_initialize_driver( instrument_t* instrument,
  * @brief Deploys the instrumentation this driver is responsible for.
  * @note Leaves the instrument in the READY_E state.
  */
-void TTD_deploy_instrumentation(void);
+int TTD_deploy_instrumentation(void);
 
 /**
  * @brief Retracts the driven instrumentation
@@ -71,7 +91,7 @@ void TTD_deploy_instrumentation(void);
  * @retval 0: still retracting at least one motor
  * @retval 1: all motors retracted
  */
-void TTD_retract_instrumentation(void);
+int TTD_retract_instrumentation(void);
 
 // /**
 //  * @brief Returns a double indicating how extended the argued motor has become.
@@ -101,6 +121,11 @@ void TTD_sample(void);
  * 8. FLAG EIGHT
  */
 unsigned char TTD_process_sample( sample_t* sample );
+
+void    rtd_driver_init(void);
+int     rtd_read_raw(uint16_t* out_raw);
+float   rtd_raw_to_resistance(uint16_t raw);
+float   rtd_resistance_to_celsius(float resistance);
 
 bool TTD_negative_flag( sample_t* sample );
 bool TTD_positive_flag( sample_t* sample );

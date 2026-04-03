@@ -3,6 +3,8 @@
 #include "flight_software/drivers/testbed_temperature_driver.h"
 #include "flight_software/flight_software_types.h"
 #include <time.h>
+#include <string.h>
+#include <stdint.h>
 
 environment_e environment = FLIGHT_E;
 timed_event_handler TTC_event_handlers[ TIMED_EVENT_COUNT ] = {
@@ -86,34 +88,34 @@ bool errors[ TTC_ERROR_COUNT ] = { false };
 void setup(void) {
 
     //Link up the function pointers into their respective data structures
-    TTC_event_handlers[ 0 ] = timed_event_1_handler;
-    TTC_event_handlers[ 1 ] = timed_event_2_handler;
-    TTC_event_handlers[ 2 ] = timed_event_3_handler;
-    TTC_event_handlers[ 3 ] = timed_event_4_handler;
-    TTC_event_handlers[ 4 ] = timed_event_5_handler;
-    TTC_event_handlers[ 5 ] = timed_event_6_handler;
-    TTC_event_handlers[ 6 ] = timed_event_7_handler;
-    TTC_event_handlers[ 7 ] = timed_event_8_handler;
-    TTC_event_handlers[ 8 ] = timed_event_9_handler;
-    TTC_event_handlers[ 9 ] = timed_event_10_handler;
+    TTC_event_handlers[ 0 ] = TTC_timed_event_1_handler;
+    TTC_event_handlers[ 1 ] = TTC_timed_event_2_handler;
+    TTC_event_handlers[ 2 ] = TTC_timed_event_3_handler;
+    TTC_event_handlers[ 3 ] = TTC_timed_event_4_handler;
+    TTC_event_handlers[ 4 ] = TTC_timed_event_5_handler;
+    TTC_event_handlers[ 5 ] = TTC_timed_event_6_handler;
+    TTC_event_handlers[ 6 ] = TTC_timed_event_7_handler;
+    TTC_event_handlers[ 7 ] = TTC_timed_event_8_handler;
+    TTC_event_handlers[ 8 ] = TTC_timed_event_9_handler;
+    TTC_event_handlers[ 9 ] = TTC_timed_event_10_handler;
 
-    TTC_event_handlers[ 10 ] = timed_event_11_handler;
-    TTC_event_handlers[ 11 ] = timed_event_12_handler;
-    TTC_event_handlers[ 12 ] = timed_event_13_handler;
-    TTC_event_handlers[ 13 ] = timed_event_14_handler;
-    TTC_event_handlers[ 14 ] = timed_event_15_handler;
-    TTC_event_handlers[ 15 ] = timed_event_16_handler;
-    TTC_event_handlers[ 16 ] = timed_event_17_handler;
-    TTC_event_handlers[ 17 ] = timed_event_18_handler;
-    TTC_event_handlers[ 18 ] = timed_event_19_handler;
-    TTC_event_handlers[ 19 ] = timed_event_20_handler;
+    TTC_event_handlers[ 10 ] = TTC_timed_event_11_handler;
+    TTC_event_handlers[ 11 ] = TTC_timed_event_12_handler;
+    TTC_event_handlers[ 12 ] = TTC_timed_event_13_handler;
+    TTC_event_handlers[ 13 ] = TTC_timed_event_14_handler;
+    TTC_event_handlers[ 14 ] = TTC_timed_event_15_handler;
+    TTC_event_handlers[ 15 ] = TTC_timed_event_16_handler;
+    TTC_event_handlers[ 16 ] = TTC_timed_event_17_handler;
+    TTC_event_handlers[ 17 ] = TTC_timed_event_18_handler;
+    TTC_event_handlers[ 18 ] = TTC_timed_event_19_handler;
+    TTC_event_handlers[ 19 ] = TTC_timed_event_20_handler;
 
     TT_controller.timed_event_handlers = TTC_event_handlers;
 
     TT_controller.loop = loop;
 
     //formally initialize the controller
-    controller_state_e status = initialize();
+    controller_state_e status = TTC_initialize();
 
     //presume no errors have occured yet
     for ( int i = 0; i < TTC_ERROR_COUNT; i ++ ) errors[ i ] = false;
@@ -122,18 +124,18 @@ void setup(void) {
 void loop(void) {
 
     //initialize if necessary (THIS SHOULD NEVER HAPPEN BUT JUST IN CASE?)
-    if ( TT_controller.state == C_UNINITIALIZED_E ) initialize();
+    if ( TT_controller.state == C_UNINITIALIZED_E ) TTC_initialize();
 
     //controller must be initialized by this point. check for timed events
     int status = -1;
     switch ( environment ) {
 
         case SIMULATION_E:
-            status = read_in_sim_timed_event();
+            status = TTC_read_in_sim_timed_event();
             break;
 
         case FLIGHT_E:
-            status = read_in_flight_timed_event();
+            status = TTC_read_in_flight_timed_event();
             break;
 
         default:
@@ -171,9 +173,9 @@ void loop(void) {
 controller_state_e TTC_initialize(void) {
 
     //Initialize a driver on top of the statically allocated instrument
-    initialize_driver( &TT_instrument, 
+    TTD_initialize_driver( &TT_instrument, 
                         0 /*No deployment*/, 
-                        &TTC_data_buffer, 
+                        &TTC_sample_buffer, 
                         &TTC_storage_buffer );
 
     //plug all my instruments into the array
@@ -239,7 +241,7 @@ void deploy(void) {
     if ( TT_controller.state == C_UNINITIALIZED_E ) {
 
         errors[ C_ERROR_DEPLOYMENT_WHILE_UNINITIALIZED_E ] = true;
-        initialize();
+        TTC_initialize();
     }
 
     //Ensure all instruments are deploying. Do not start sampling before complete deployment
@@ -287,50 +289,50 @@ void retract(void) {
 }
 
 //DEPLOY IF NOT DEPLOYED, SAMPLE IF DEPLOYED
-void timed_event_1_handler(void) {
+void TTC_timed_event_1_handler(void) {
 
     deploy();
     sample_cycle();
 }
 
 //SAMPLE IF DEPLOYED
-void timed_event_2_handler(void) {
+void TTC_timed_event_2_handler(void) {
     
     sample_cycle();
 }
 
 //SAMPLE IF DEPLOYED
-void timed_event_3_handler(void) {
+void TTC_timed_event_3_handler(void) {
 
     sample_cycle();
 }
 
 //RETRACT
-void timed_event_4_handler(void) {
+void TTC_timed_event_4_handler(void) {
 
     retract();
 }
 
 //SAMPLE IF DEPLOYED (SHOULD FAIL)
-void timed_event_5_handler(void) {
+void TTC_timed_event_5_handler(void) {
 
     sample_cycle();
 }
 
 //STUBS
-void timed_event_6_handler(void) { return; }
-void timed_event_7_handler(void) { return; }
-void timed_event_8_handler(void) { return; }
-void timed_event_9_handler(void) { return; }
-void timed_event_10_handler(void) { return; }
+void TTC_timed_event_6_handler(void);
+void TTC_timed_event_7_handler(void);
+void TTC_timed_event_8_handler(void);
+void TTC_timed_event_9_handler(void);
+void TTC_timed_event_10_handler(void);
 
-void timed_event_11_handler(void) { return; }
-void timed_event_12_handler(void) { return; }
-void timed_event_13_handler(void) { return; }
-void timed_event_14_handler(void) { return; }
-void timed_event_15_handler(void) { return; }
-void timed_event_16_handler(void) { return; }
-void timed_event_17_handler(void) { return; }
-void timed_event_18_handler(void) { return; }
-void timed_event_19_handler(void) { return; }
-void timed_event_20_handler(void) { return; }
+void TTC_timed_event_11_handler(void);
+void TTC_timed_event_12_handler(void);
+void TTC_timed_event_13_handler(void);
+void TTC_timed_event_14_handler(void);
+void TTC_timed_event_15_handler(void);
+void TTC_timed_event_16_handler(void);
+void TTC_timed_event_17_handler(void);
+void TTC_timed_event_18_handler(void);
+void TTC_timed_event_19_handler(void);
+void TTC_timed_event_20_handler(void);

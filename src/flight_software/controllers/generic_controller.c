@@ -4,6 +4,7 @@
 // #include "flight_software/drivers/sim_timer_driver.h"
 #include "flight_software/flight_software_types.h"
 #include <time.h>
+#include <string.h>
 
 environment_e environment = SIMULATION_E;
 timed_event_handler generic_event_handlers[ TIMED_EVENT_COUNT ] = {
