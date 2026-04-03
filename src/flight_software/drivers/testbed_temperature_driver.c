@@ -58,6 +58,7 @@ void initialize_driver( instrument_t* instrument,
     instrument->sample_buffer = sample_buffer;
     driven_instrument = instrument;
     driven_instrument->driver_state = D_DEPLOYMENT_E;
+    rtd_driver_init();
 }
 
 // void generic_deploy_instrumentation(void) {
