@@ -2,13 +2,22 @@
 #ifndef TT_CONTROLLER_H
 #define TT_CONTROLLER_H
 
-#include "flight_software/drivers/testbed_temperature_driver.h"
-#include "flight_software/flight_software_types.h"
-#include "simulation/real_time_engine.h"
+#include "testbed_temperature_driver.h"
+#include "testbed_types.h"
+// #include "simulation/real_time_engine.h"
 
+/*============\
+PIN DEFINITIONS
+\============*/
+#define SD_MISO_PIN 4
+#define SD_CS_PIN 5
+#define SD_SCK_PIN 6
+#define SD_MOSI_PIN 7
 
 /* all caps means peripheral to this scope
-TIMESTAMP
+TIMESTAMP millis()
+TIMESTAMP delta_time
+TIMESTAMP mission_seconds
 CONTROLLER STATE
 CONTROLLER ERRORS
 driver state
@@ -16,13 +25,13 @@ driver errors
 flags
 data
 */
-#define TTC_PERIPHERAL_COLUMNS 3
+#define TTC_PERIPHERAL_COLUMNS 5
 #define TTC_DRIVERS_UTILIZED 1
-#define TTC_OUTPUT_FILE_NAME "Testbed Thermometer Data"
+#define TTC_OUTPUT_FILE_NAME "Testbed Thermometer Data.csv"
 #define TTC_STORAGE_COLUMNS ( TTD_CSV_COLUMNS_COUNT + TTC_PERIPHERAL_COLUMNS )
 #define TTC_DATA_BUFFER_SIZE ( TTC_STORAGE_COLUMNS * TTD_SAMPLES_PER_WRITE )
 
-typedef enum TTC_errors_e TTC_errors_e;
+// typedef enum TTC_errors_e TTC_errors_e;
 enum TTC_errors_e {
 
     C_ERROR_ENVIRONMENT_FALLTHROUGH_E,
@@ -33,17 +42,17 @@ enum TTC_errors_e {
 TTC_ERROR_COUNT
 };
 
-/**
- * @brief Entry point for the controller. Use this to link up the controller struct
- */
-void setup(void);
+// /**
+//  * @brief Entry point for the controller. Use this to link up the controller struct
+//  */
+// void setup(void);
 
-/**
- * @brief Main looping function for the microcontroller
- * @note Wee haw!
- * @todo ADD A GIANT ERROR MESSAGE IN HERE
- */
-void loop(void);
+// /**
+//  * @brief Main looping function for the microcontroller
+//  * @note Wee haw!
+//  * @todo ADD A GIANT ERROR MESSAGE IN HERE
+//  */
+// void loop(void);
 
 /**
  * @brief Initialize a controller with the given number of instruments.
@@ -65,14 +74,14 @@ int TTC_read_in_sim_timed_event(void);
  */
 int TTC_read_in_flight_timed_event(void);
 
-void deploy(void);
+void TTC_deploy(void);
 
-void retract(void);
+void TTC_retract(void);
 
 /**
  * @brief Performs one cycle of sampling.
  */
-void sample_cycle(void);
+void TTC_sample_cycle(void);
 
 void TTC_timed_event_1_handler(void);
 void TTC_timed_event_2_handler(void);
@@ -95,5 +104,20 @@ void TTC_timed_event_17_handler(void);
 void TTC_timed_event_18_handler(void);
 void TTC_timed_event_19_handler(void);
 void TTC_timed_event_20_handler(void);
+
+void save_buffer_to_SD(csv_t* csv);
+
+void deployment_blinker(void);
+
+void retraction_blinker(void);
+
+/**
+ * @brief Turns an array of booleans into a double which represents them all bitwise.
+ * @param bool_array bool* pointer to the bool array
+ * @param size int size of the bool array
+ */
+double crunch_flags(bool bool_array[], int size);
+
+void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index);
 
 #endif

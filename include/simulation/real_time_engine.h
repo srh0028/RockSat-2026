@@ -11,6 +11,7 @@ typedef struct simulation_t simulation_t;
 
 extern simulation_t simulation;
 extern controller_t generic_controller;
+extern controller_t TT_controller;
 
 typedef enum controllers_e {
 

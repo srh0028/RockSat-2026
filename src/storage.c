@@ -340,23 +340,13 @@ void save_buffer_to_sim_sd(csv_t* csv) {
 
 double crunch_flags(bool bool_array[], int size) {
 
-    // printf( "%s\n", "crunch_flags()" );
-
-    uint64_t flags = 0ULL;
-
-    // printf( "%s%f\n", "flags (initial:) ", (double) flags );
-    
+    uint64_t flags = 0ULL;    
     for (int i = 0; i < size && i < 50; i++) {  // 50 bits max for exact double
         if (bool_array[i]) {
-
-            // printf( "%s%d\n", "flipping flag: ", i );
 
             flags |= (1ULL << i);
         }
     }
-    
-    // printf( "%s%f\n", "flags (final:) ", (double) flags );
-    // printf( "%s\n", "/crunch_flags()\n" );
 
     return (double)flags;  // Return as double
 }

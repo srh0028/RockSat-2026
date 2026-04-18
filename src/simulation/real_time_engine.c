@@ -16,7 +16,7 @@ simulation_t simulation = {
     0,
     -1,
     -1,
-    { &generic_controller }
+    { &generic_controller, &TT_controller }
 };
 
 int reset_simulation( csv_t* flight_profile_ptr ) {
@@ -46,6 +46,7 @@ int reset_simulation( csv_t* flight_profile_ptr ) {
 
     //set up all the controllers, as happens in real life, and return
     generic_controller_setup();
+    setup();
     return 1;
 }
 
