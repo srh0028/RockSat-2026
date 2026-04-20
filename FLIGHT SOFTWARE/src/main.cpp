@@ -92,6 +92,9 @@ controller_t TT_controller = {
 };
 bool TTC_errors[ TTC_ERROR_COUNT ] = { false };
 
+#define MAX_FILENAME_LENGTH 32
+char current_filename[ MAX_FILENAME_LENGTH ] = { '\0' };
+
 // Deployment blinker globals
 unsigned long deploy_current_time = 0;
 unsigned long deploy_last_call_time = 0;
@@ -107,6 +110,8 @@ unsigned long retract_accumulated_time = 0;
 bool retract_blinker_on = false;
 
 void setup(void) {
+
+    Serial.begin( 9600 );
 
     //Link up the function pointers into their respective data structures
     TTC_event_handlers[ 0 ] = TTC_timed_event_1_handler;
@@ -151,22 +156,37 @@ void setup(void) {
 
     //presume no errors have occured yet
     for ( int i = 0; i < TTC_ERROR_COUNT; i ++ ) TTC_errors[ i ] = false;
-    
+
     //initialize UI
     pinMode( LED_PIN, OUTPUT );
-    
-    //initialize sd pins
+
+    //initialize the code LEDs
+    pinMode(ERROR_LED_BIT0, OUTPUT);
+    pinMode(ERROR_LED_BIT1, OUTPUT);
+    pinMode(ERROR_LED_BIT2, OUTPUT);
+    pinMode(ERROR_LED_BIT3, OUTPUT);
+
+    digitalWrite( ERROR_LED_BIT0, HIGH );
+    digitalWrite( ERROR_LED_BIT1, HIGH );
+    digitalWrite( ERROR_LED_BIT2, HIGH );
+    digitalWrite( ERROR_LED_BIT3, HIGH );
+    delay( 1500 );
+
+    digitalWrite( ERROR_LED_BIT0, LOW );
+    digitalWrite( ERROR_LED_BIT1, LOW );
+    digitalWrite( ERROR_LED_BIT2, LOW );
+    digitalWrite( ERROR_LED_BIT3, LOW );
+
+    //initialize storage
     SPI.setRX(SD_MISO_PIN);
     SPI.setTX(SD_MOSI_PIN);
     SPI.setSCK(SD_SCK_PIN);
     SPI.begin();
+    if ( !SD.begin(SD_CS_PIN) ) display_LED_code( C_CODE_SD_INITALIZATION_FAILED_E );
+    else display_LED_code( C_CODE_SD_INITIALIZED_E );
+    delay( 1500 );
+    generate_next_filename( current_filename, MAX_FILENAME_LENGTH, TTC_OUTPUT_FILE_NAME );
 
-    if ( !SD.begin(SD_CS_PIN) ) {
-
-        //init failed
-        digitalWrite( LED_PIN, HIGH );
-        delay(5000);
-    }
 }
 
 void loop(void) {
@@ -254,6 +274,8 @@ void TTC_sample_cycle(void) {
 
     //Begin sample cycle
     TT_controller.state = C_SAMPLING_E;
+    display_LED_code( C_CODE_SAMPLE_CYCLE_E );
+
     instrument_t* instrument;
     csv_t* storage_buffer = &TTC_storage_buffer;
     int where = storage_buffer->cursor * storage_buffer->columns_int;
@@ -290,6 +312,8 @@ void TTC_sample_cycle(void) {
     //reset controller state
     storage_buffer->cursor ++;
     TT_controller.state = C_READY_E;
+
+    display_LED_code( C_CODE_SD_INITIALIZED_E );
 }
 
 void TTC_deploy(void) {
@@ -407,8 +431,13 @@ void save_buffer_to_SD(csv_t* csv) {
     if (!csv || !csv->data_ptr || csv->cursor == 0) return;
     
     // Open file
+    display_LED_code( C_CODE_OPENING_SD_E );
     File dataFile = SD.open(csv->file_name_ptr, FILE_WRITE);
-    if ( !dataFile ) return;
+    if ( !dataFile ) {
+
+        display_LED_code( C_CODE_OPENING_FAILED_E );
+        return;
+    }
 
     // Write headers if not printed yet
     if (!csv->headers_printed) {
@@ -442,6 +471,7 @@ void save_buffer_to_SD(csv_t* csv) {
     }
     
     dataFile.close();
+    display_LED_code( C_CODE_CLOSING_SD_E );
 }
 
 void deployment_blinker(void) {
@@ -535,4 +565,169 @@ void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_colu
     for (int i = 0; i < sample->sample_double_count; i++) {
         storage_buffer->data_ptr[row_start_index + (first_column_index + 3 + i)] = sample->samples[i];
     }
+}
+
+void display_LED_code( LED_CODE_E which_code ) {
+
+    switch ( which_code ) {
+
+        case C_CODE_SD_INITIALIZED_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_SD_INITALIZATION_FAILED_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_SAMPLE_CYCLE_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_OPENING_SD_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_CLOSING_SD_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_OPENING_FAILED_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_GENERATING_FILENAME_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;
+
+        case C_CODE_CHECKING_FILENAME_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_FILENAME_USED_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_FILENAME_AVAILABLE_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_11_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_12_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_13_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_14_E:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+
+        case C_CODE_15_E:
+            digitalWrite( ERROR_LED_BIT0, HIGH );
+            digitalWrite( ERROR_LED_BIT1, HIGH );
+            digitalWrite( ERROR_LED_BIT2, HIGH );
+            digitalWrite( ERROR_LED_BIT3, HIGH );
+            break;
+        
+        default:
+            analogWrite( ERROR_LED_BIT0, 32 );
+            analogWrite( ERROR_LED_BIT1, 32 );
+            analogWrite( ERROR_LED_BIT2, 32 );
+            analogWrite( ERROR_LED_BIT3, 32 );
+            break;           
+    }
+    delay(2);
+}
+
+void generate_next_filename(char* buffer, int buffer_size, const char* base_name) {
+    
+    display_LED_code( C_CODE_GENERATING_FILENAME_E );
+    delay( 1500 );
+    
+    int file_number = 1;
+    bool file_exists = true;
+    
+    while (file_exists) {
+
+        //make the new file name
+        snprintf(buffer, buffer_size, "/%s%d.csv", base_name, file_number);
+    
+        //print that filename to the sd card
+        File names_file = SD.open( "names.csv", FILE_WRITE );
+        names_file.printf( "file_number: ,%d\nbuffer: %s\n\n", file_number, buffer );
+        names_file.close();
+
+        display_LED_code( C_CODE_CHECKING_FILENAME_E );
+        delay( 1498 );
+
+        // File testFile = SD.open(buffer, FILE_READ);
+
+        if (SD.exists( buffer )) {
+            // File exists
+            display_LED_code( C_CODE_FILENAME_USED_E );
+            delay( 1498 );
+            // testFile.close();
+            file_number++;
+        } else {
+            // File does not exist - we can use this number
+            display_LED_code( C_CODE_FILENAME_AVAILABLE_E );
+            delay( 1498 );
+            file_exists = false;
+        }
+        
+        // Safety limit
+        if (file_number > 999) {
+            snprintf(buffer, buffer_size, "%s1.csv", base_name);
+            break;
+        }
+    }
+
+    TTC_storage_buffer.file_name_ptr = buffer;
 }

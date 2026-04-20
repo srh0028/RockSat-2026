@@ -27,9 +27,37 @@ data
 */
 #define TTC_PERIPHERAL_COLUMNS 5
 #define TTC_DRIVERS_UTILIZED 1
-#define TTC_OUTPUT_FILE_NAME "Testbed Thermometer Data.csv"
+#define TTC_OUTPUT_FILE_NAME "Test"
 #define TTC_STORAGE_COLUMNS ( TTD_CSV_COLUMNS_COUNT + TTC_PERIPHERAL_COLUMNS )
 #define TTC_DATA_BUFFER_SIZE ( TTC_STORAGE_COLUMNS * TTD_SAMPLES_PER_WRITE )
+
+#define ERROR_LED_BIT0 16  // Physical pin 21 - Least significant bit (1)
+#define ERROR_LED_BIT1 17  // Physical pin 22 - Middle bit (2)
+#define ERROR_LED_BIT2 18  // Physical pin 24 - Most significant bit (4)
+#define ERROR_LED_BIT3 19 //physical pin 25
+
+enum LED_CODE_E {
+
+    C_CODE_SD_INITIALIZED_E, //SD initialized
+    C_CODE_SD_INITALIZATION_FAILED_E, //SD not initialized
+    C_CODE_SAMPLE_CYCLE_E,
+    C_CODE_OPENING_SD_E,
+    C_CODE_CLOSING_SD_E,
+    C_CODE_OPENING_FAILED_E,
+    C_CODE_GENERATING_FILENAME_E,
+    C_CODE_CHECKING_FILENAME_E,
+    C_CODE_FILENAME_USED_E,
+    C_CODE_FILENAME_AVAILABLE_E,
+    C_CODE_11_E,
+    C_CODE_12_E,
+    C_CODE_13_E,
+    C_CODE_14_E,
+    C_CODE_15_E,
+
+LED_CODE_COUNT
+};
+
+void display_LED_code( LED_CODE_E which_code );
 
 // typedef enum TTC_errors_e TTC_errors_e;
 enum TTC_errors_e {
@@ -119,5 +147,7 @@ void retraction_blinker(void);
 double crunch_flags(bool bool_array[], int size);
 
 void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index);
+
+void generate_next_filename(char* buffer, int buffer_size, const char* base_name);
 
 #endif
