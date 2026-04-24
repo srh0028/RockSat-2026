@@ -21,20 +21,6 @@ PIN DEFINITIONS
 SCIENCE STUFF
 \==========*/
 
-enum LPD_error_e {
-
-    D_ERROR_REDUNDANT_INITIALIZATION_E,
-    D_ERROR_SAMPLE_BUFFER_NPE_E,
-    D_ERROR_STORAGE_BUFFER_NPE_E,
-    D_ERROR_ILLEGAL_DEPLOYMENT_E,
-    D_ERROR_REDUNDANT_DEPLOYMENT_E,
-    D_ERROR_ILLEGAL_RETRACTION_E,
-    D_ERROR_REDUNDANT_RETRACTION_E,
-    D_ERROR_ILLEGAL_SAMPLE_E,
-
-LPD_ERROR_COUNT
-};
-
 /**
  * @brief Initializes the instrument driver. Injects a reference to the sample buffer into the driver.
  * @note Leaves the initialized instrument in the DEPLOYMENT_E state.
@@ -43,7 +29,7 @@ LPD_ERROR_COUNT
  * @param sample_buffer sample_t* allocated by calling code
  * @param storage_buffer csv_t* allocated by calling code
  */
-void LPD_initialize_driver( instrument_t* instrument
+void LPD_initialize_driver( instrument_t* instrument,
                     sample_t* sample_buffer,
                     csv_t* storage_buffer );
 
@@ -56,12 +42,8 @@ void LPD_deploy_instrumentation(void);
 /**
  * @brief Retracts the driven instrumentation
  * @note leaves the driver in DEPLOYMENT_E state
- * @retval -1: illegal state
- * @retval -2: instrumentation was not deployed to begin with
- * @retval 0: still retracting at least one motor
- * @retval 1: all motors retracted
  */
-int LPD_retract_instrumentation(void);
+void LPD_retract_instrumentation(void);
 
 /**
  * @brief Returns a double indicating how extended the argued motor has become.
@@ -76,5 +58,7 @@ bool LPD_measure_extension(void);
  * @retval sample_t*: success
  */
 void LPD_sample(void);
+
+void LPD_sample_old(void);
 
 #endif

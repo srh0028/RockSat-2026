@@ -8,43 +8,55 @@
 /*============\
 PIN DEFINITIONS
 \============*/
-#define HIGH 1
-#define LOW 0
+#define LVL_HIGH 1
+#define LVL_LOW 0
 
-#define UART_TX_PIN 0
-#define UART_RX_PIN 1
+#define UART_TX_PIN 1
+#define UART_RX_PIN 2
 #define UART_BAUD_RATE 230400
 
-#define RECORD_ENABLE_PIN 17
+#define RECORD_ENABLE_PIN 22
 
-#define TE1_PIN 26
-#define TE2_PIN 27
+#define TE1_PIN 31
+#define TE2_PIN 32
 
-#define CONVERTERS_SCK_PIN 2
-#define CONVERTERS_MOSI_PIN 3
+#define CONVERTERS_SCK_PIN 4
+#define CONVERTERS_MOSI_PIN 5
 
-#define ADC_MISO_0_PIN 4
-#define ADC_MISO_1_PIN 5
-#define ADC_MISO_2_PIN 6
-#define ADC_MISO_3_PIN 7
-#define ADC_MISO_4_PIN 8
-#define ADC_CNV_PIN 12
-#define ADC_BUSY_PIN 13
+#define ADC_CHANNELS_IN_USE 5
+#define ADC_MISO_0_PIN 6
+#define ADC_MISO_1_PIN 7
+#define ADC_MISO_2_PIN 9
+#define ADC_MISO_3_PIN 10
+#define ADC_MISO_4_PIN 11
+#define ADC_CNV_PIN 16
+#define ADC_BUSY_PIN 17
+#define ADC_CS_PIN 19
 
-#define DAC_CS_PIN 28
+#define DAC_CS_PIN 34
 
 #define LED_PIN 25
 
 #define MOTOR_COUNT 6
-#define MOTOR_PWM_PIN 15
-#define MOTOR_PWM_VALUE 0xDEADBEEF
+#define MOTOR_PWM_PIN 20
+#define MOTOR_PWM_DEPLOYMENT 100 //microseconds
+#define MOTOR_PWM_RETRACTION 5500 //microseconds
+#define MOTOR_PWM_STATIONARY 1500 //microseconds
 
-#define MOTOR_PIN_0 9
-#define MOTOR_PIN_1 10
-#define MOTOR_PIN_2 11
-#define MOTOR_PIN_3 16
-#define MOTOR_PIN_4 18
-#define MOTOR_PIN_5 19
+#define PWM_CLOCK_DIVIDER   125.0f  // 125MHz / 125 = 1MHz (1us per count)
+#define PWM_PERIOD_US       20000   // 20ms period (50Hz)
+
+//motor testing pins
+#define TEST_LIMIT_SWITCH_PIN 15
+#define TEST_MOTOR_PIN 12
+
+//limit switches?
+#define MOTOR_PIN_0 24
+#define MOTOR_PIN_1 25
+#define MOTOR_PIN_2 26
+#define MOTOR_PIN_3 27
+#define MOTOR_PIN_4 29
+#define MOTOR_PIN_5 21
 
 /* all caps means peripheral to this scope
 TIMESTAMP millis()
@@ -149,10 +161,14 @@ void save_buffer_to_SD(csv_t* csv);
  * @param bool_array bool* pointer to the bool array
  * @param size int size of the bool array
  */
-double crunch_flags(bool bool_array[], int size);
+int crunch_flags(bool bool_array[], int size);
 
 void write_sample_to_csv(csv_t* storage_buffer, sample_t* sample, int first_column_index);
 
 void generate_next_filename(char* buffer, int buffer_size, const char* base_name);
+
+void initialize_PWM( int which_pin );
+
+void pwm_servo_set_pulse_us( uint which_pin, uint pulse_width_us );
 
 #endif

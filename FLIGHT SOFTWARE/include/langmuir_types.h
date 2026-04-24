@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <time.h>
+#include "langmuir_driver.h"
 
 #define DOUBLES_PER_SAMPLE 5
 
@@ -11,8 +12,8 @@ typedef struct sample_t sample_t;
 typedef struct instrument_t instrument_t;
 typedef struct controller_t controller_t;
 typedef int ( *read_timed_event_pin )(void);
-typedef int ( *deployment_function )(void);
-typedef int ( *retraction_function )(void);
+typedef void ( *deployment_function )(void);
+typedef void ( *retraction_function )(void);
 typedef void ( *sample_function )(void);
 typedef void ( *controller_loop )(void);
 typedef void ( *timed_event_handler )(void);
@@ -34,12 +35,27 @@ CONTROLLER_STATE_COUNT
 enum driver_state_e {
 
     D_UNINITIALIZED_E,
-    D_DEPLOYMENT_E,
+    D_UNDEPLOYED_E,
+    D_DEPLOYING_E,
     D_READY_E,
     D_SAMPLING_E,
     D_ERROR_E,
 
 DRIVER_STATE_COUNT
+};
+
+enum LPD_error_e {
+
+    D_ERROR_REDUNDANT_INITIALIZATION_E,
+    D_ERROR_SAMPLE_BUFFER_NPE_E,
+    D_ERROR_STORAGE_BUFFER_NPE_E,
+    D_ERROR_ILLEGAL_DEPLOYMENT_E,
+    D_ERROR_REDUNDANT_DEPLOYMENT_E,
+    D_ERROR_ILLEGAL_RETRACTION_E,
+    D_ERROR_REDUNDANT_RETRACTION_E,
+    D_ERROR_ILLEGAL_SAMPLE_E,
+
+LPD_ERROR_COUNT
 };
 
 enum timed_event_e {
@@ -97,6 +113,7 @@ struct instrument_t {
     sample_function sample;
     int target_deployment_units;
     bool deployed;
+    bool errors[ LPD_ERROR_COUNT ];
     sample_t* sample_buffer;
     csv_t* storage_buffer;
     int first_index_in_csv;
